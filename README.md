@@ -1,16 +1,72 @@
-# React + Vite
+# 🛒 FE-ShopAccount - Hướng dẫn làm việc nhóm với Git
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Chào mừng mọi người đã tham gia dự án! Để đảm bảo code không bị ghi đè và quy trình phát triển mượt mà, tất cả thành viên vui lòng tuân thủ các quy tắc dưới đây.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+🛠️ Quy trình làm việc (Workflow)
+Chúng ta sẽ sử dụng mô hình Feature Branching. Mọi người KHÔNG push code trực tiếp lên nhánh main.
 
-## React Compiler
+Bước 1: Cập nhật code mới nhất
+Trước khi bắt đầu làm bất cứ thứ gì, hãy về nhánh main và kéo code mới nhất về:
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+Bash
+git checkout main
+git pull origin main
+Bước 2: Tạo nhánh mới để làm tính năng
+Đặt tên nhánh theo cú pháp: feature/ten-tinh-nang hoặc fix/ten-loi.
 
-## Expanding the ESLint configuration
+Bash
+git checkout -b feature/login-page
+Bước 3: Code và Commit
+Lưu ý: Luôn chạy npm install nếu có thành viên khác vừa thêm thư viện mới.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Bash
+git add .
+git commit -m "feat: giao diện trang đăng nhập"
+Bước 4: Đẩy code lên GitHub
+Bash
+git push origin feature/login-page
+Bước 5: Tạo Pull Request (PR)
+Lên giao diện GitHub, chọn New Pull Request.
+
+Chọn nhánh của bạn merge vào main.
+
+Gán (Assign) leader hoặc bạn cùng team vào review.
+
+Sau khi được duyệt, tiến hành Merge và xóa nhánh tính năng trên GitHub.
+
+📌 Quy tắc đặt tên Commit (Conventional Commits)
+Để lịch sử dự án sạch sẽ, hãy dùng các tiền tố sau:
+
+feat: Một tính năng mới (ví dụ: feat: thêm giỏ hàng).
+
+fix: Sửa một lỗi (ví dụ: fix: lỗi không hiển thị avatar).
+
+docs: Thay đổi tài liệu, README.
+
+style: Thay đổi định dạng code (UI/CSS), không thay đổi logic.
+
+refactor: Tối ưu hóa code cũ nhưng không đổi tính năng.
+
+⚠️ Cách xử lý xung đột (Conflict)
+Nếu khi git pull hoặc merge bị báo Conflict:
+
+Mở VS Code lên, tìm các file bị đỏ.
+
+Chọn Accept Current Change (giữ code của mình), Accept Incoming Change (lấy code người khác) hoặc Accept Both.
+
+Lưu file, sau đó thực hiện:
+
+Bash
+git add .
+git commit -m "chore: resolve merge conflict"
+git push
+📦 Cài đặt dự án cho thành viên mới
+git clone <url-du-an>
+
+npm install
+
+npm run dev
+
+---
