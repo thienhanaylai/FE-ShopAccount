@@ -25,6 +25,17 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Prepare deploy directory on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          password: ${{ secrets.VM_PASSWORD }}
+          script: |
+            sudo mkdir -p /var/www/shopaccount
+            sudo chown -R $USER:$USER /var/www/shopaccount
+            sudo chmod -R 755 /var/www/shopaccount
+
       - name: Deploy to Azure VM via scp
         uses: appleboy/scp-action@v0.1.7
         with:
