@@ -35,6 +35,7 @@ jobs:
             sudo mkdir -p /var/www/shopaccount
             sudo chown -R $USER:$USER /var/www/shopaccount
             sudo chmod -R 755 /var/www/shopaccount
+            rm -rf /var/www/shopaccount/*
 
       - name: Deploy to Azure VM via scp
         uses: appleboy/scp-action@v0.1.7
@@ -45,7 +46,6 @@ jobs:
           source: dist/
           target: /var/www/shopaccount/
           strip_components: 1
-          rm: true
 
       - name: Reload Apache
         uses: appleboy/ssh-action@v1.0.3
