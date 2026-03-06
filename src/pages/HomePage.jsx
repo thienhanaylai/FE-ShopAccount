@@ -23,7 +23,7 @@ const HomePage = () => {
     <div style={styles.page}>
       <div style={styles.card}>
         <div style={styles.header}>
-          <h1 style={styles.title}>👥 Danh sách Users Demo Call API</h1>
+          <h1 style={styles.title}>👥 Danh sách Users Demo Call API Testing</h1>
           {!loading && !error && <span style={styles.badge}>{users.length} người dùng</span>}
         </div>
 
