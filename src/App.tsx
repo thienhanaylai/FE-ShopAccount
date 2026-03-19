@@ -1,0 +1,141 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+import { HomePage } from './pages/HomePage';
+import { ShopPage } from './pages/ShopPage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { DepositPage } from './pages/DepositPage';
+import { SellAccountPage } from './pages/SellAccountPage';
+import { SupportPage } from './pages/SupportPage';
+import { CardTopupPage } from './pages/CardTopupPage';
+import { UserProfilePage } from './pages/UserProfilePage';
+import { TransferMoneyPage } from './pages/TransferMoneyPage';
+
+// Admin Pages
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { CategoriesManagement } from './pages/admin/CategoriesManagement';
+import { UsersManagement } from './pages/admin/UsersManagement';
+import { AccountsManagement } from './pages/admin/AccountsManagement';
+import { OrdersManagement } from './pages/admin/OrdersManagement';
+import { DepositsManagement } from './pages/admin/DepositsManagement';
+import { CardTopupManagement } from './pages/admin/CardTopupManagement';
+import { SupportManagement } from './pages/admin/SupportManagement';
+import { SellRequestsManagement } from './pages/admin/SellRequestsManagement';
+import { SettingsManagement } from './pages/admin/SettingsManagement';
+
+function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function AppContent() {
+  const { user, logout, isAdmin } = useAuth();
+
+  return (
+    <Router>
+      <Routes>
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedAdminRoute>
+              <AdminLayout onLogout={logout} />
+            </ProtectedAdminRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="categories" element={<CategoriesManagement />} />
+          <Route path="users" element={<UsersManagement />} />
+          <Route path="accounts" element={<AccountsManagement />} />
+          <Route path="orders" element={<OrdersManagement />} />
+          <Route path="deposits" element={<DepositsManagement />} />
+          <Route path="card-topup" element={<CardTopupManagement />} />
+          <Route path="support" element={<SupportManagement />} />
+          <Route path="sell-requests" element={<SellRequestsManagement />} />
+          <Route path="settings" element={<SettingsManagement />} />
+        </Route>
+
+        {/* Auth Routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+
+        {/* Public Routes */}
+        <Route
+          path="*"
+          element={
+            <div className="min-h-screen flex flex-col">
+              <Header
+                isLoggedIn={!!user}
+                username={user?.username}
+                balance={user?.balance}
+                onLogout={logout}
+                isAdmin={isAdmin}
+              />
+
+              <main className="flex-1">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/shop" element={<ShopPage />} />
+                  <Route path="/product/:id" element={<ProductDetailPage />} />
+                  <Route path="/deposit" element={<DepositPage />} />
+                  <Route path="/sell-account" element={<SellAccountPage />} />
+                  <Route path="/support" element={<SupportPage />} />
+                  <Route path="/card-topup" element={<CardTopupPage />} />
+                  <Route 
+                    path="/transfer" 
+                    element={
+                      <ProtectedRoute>
+                        <TransferMoneyPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/profile" 
+                    element={
+                      <ProtectedRoute>
+                        <UserProfilePage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                </Routes>
+              </main>
+
+              <Footer />
+            </div>
+          }
+        />
+      </Routes>
+    </Router>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}

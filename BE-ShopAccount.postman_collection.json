@@ -1,0 +1,769 @@
+{
+  "info": {
+    "name": "BE-ShopAccount API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Full CRUD collection for all feature modules in BE-ShopAccount"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "authToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "targetUserId", "value": "" },
+    { "key": "gameCategoryId", "value": "" },
+    { "key": "gameAccountId", "value": "" },
+    { "key": "mediaPublicId", "value": "" },
+    { "key": "mediaFolder", "value": "shop-account" },
+    { "key": "orderId", "value": "" },
+    { "key": "transactionId", "value": "" },
+    { "key": "sellRequestId", "value": "" },
+    { "key": "supportTicketId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"auth_postman\",\n  \"email\": \"auth_postman@example.com\",\n  \"password\": \"Auth@123\",\n  \"phone\": \"0901234567\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"auth_postman@example.com\",\n  \"password\": \"Auth@123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"user_postman\",\n  \"email\": \"user_postman@example.com\",\n  \"password\": \"User@123\",\n  \"phone\": \"0900000000\",\n  \"role\": \"CUSTOMER\"\n}"
+            },
+            "url": "{{baseUrl}}/users"
+          }
+        },
+        {
+          "name": "Get Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/users?page=1&limit=20&search=user"
+          }
+        },
+        {
+          "name": "Get User By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0911111111\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Admin Update User (Restricted Fields)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0911222333\",\n  \"role\": \"CUSTOMER\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/users/{{userId}}/admin-update"
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/users/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Game Categories",
+      "item": [
+        {
+          "name": "Create Game Category",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Valorant",
+                  "type": "text"
+                },
+                {
+                  "key": "slug",
+                  "value": "valorant",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Valorant accounts",
+                  "type": "text"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "iconFile",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/game-categories"
+          }
+        },
+        {
+          "name": "Get Game Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/game-categories?page=1&limit=20&search=valorant"
+          }
+        },
+        {
+          "name": "Get Game Category By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/game-categories/{{gameCategoryId}}"
+          }
+        },
+        {
+          "name": "Update Game Category",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated category description\"\n}"
+            },
+            "url": "{{baseUrl}}/game-categories/{{gameCategoryId}}"
+          }
+        },
+        {
+          "name": "Delete Game Category",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/game-categories/{{gameCategoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Game Accounts",
+      "item": [
+        {
+          "name": "Create Game Account",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{gameCategoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "ga_postman_001",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "ga_postman_001@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "secret001",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "120000",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "AVAILABLE",
+                  "type": "text"
+                },
+                {
+                  "key": "level",
+                  "value": "20",
+                  "type": "text"
+                },
+                {
+                  "key": "rank",
+                  "value": "Gold",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Postman created account",
+                  "type": "text"
+                },
+                {
+                  "key": "imageFiles",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/game-accounts"
+          }
+        },
+        {
+          "name": "Get Game Accounts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/game-accounts?page=1&limit=20&status=AVAILABLE&minPrice=100000"
+          }
+        },
+        {
+          "name": "Get Game Account By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/game-accounts/{{gameAccountId}}"
+          }
+        },
+        {
+          "name": "Update Game Account",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 130000,\n  \"status\": \"RESERVED\"\n}"
+            },
+            "url": "{{baseUrl}}/game-accounts/{{gameAccountId}}"
+          }
+        },
+        {
+          "name": "Delete Game Account",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/game-accounts/{{gameAccountId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Media",
+      "item": [
+        {
+          "name": "Upload Image",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "folder",
+                  "value": "{{mediaFolder}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/media/upload"
+          }
+        },
+        {
+          "name": "Get Image Details",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/media/details?publicId={{mediaPublicId}}"
+          }
+        },
+        {
+          "name": "Get Image URL",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/media/url?publicId={{mediaPublicId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"gameAccountId\": \"{{gameAccountId}}\",\n  \"price\": 130000,\n  \"status\": \"PENDING\"\n}"
+            },
+            "url": "{{baseUrl}}/orders"
+          }
+        },
+        {
+          "name": "Get Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/orders?page=1&limit=20&status=PAID"
+          }
+        },
+        {
+          "name": "Get Order By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/orders/{{orderId}}"
+          }
+        },
+        {
+          "name": "Update Order",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"PAID\"\n}" },
+            "url": "{{baseUrl}}/orders/{{orderId}}"
+          }
+        },
+        {
+          "name": "Delete Order",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/orders/{{orderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Create Transaction (Payment)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"PAYMENT\",\n  \"price\": 130000,\n  \"status\": \"SUCCESS\"\n}"
+            },
+            "url": "{{baseUrl}}/transactions"
+          }
+        },
+        {
+          "name": "Create Transaction (Transfer)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"recipientUserId\": \"{{targetUserId}}\",\n  \"method\": \"TRANSFER\",\n  \"price\": 50000,\n  \"status\": \"SUCCESS\"\n}"
+            },
+            "url": "{{baseUrl}}/transactions"
+          }
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/transactions?page=1&limit=20&method=PAYMENT&status=SUCCESS"
+          }
+        },
+        {
+          "name": "Get Transaction By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/transactions/{{transactionId}}"
+          }
+        },
+        {
+          "name": "Update Transaction",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"WITHDRAW\",\n  \"status\": \"REFUNDED\"\n}"
+            },
+            "url": "{{baseUrl}}/transactions/{{transactionId}}"
+          }
+        },
+        {
+          "name": "Delete Transaction",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/transactions/{{transactionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "item": [
+        {
+          "name": "Top Up (Me)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000,\n  \"channel\": \"VNPAY\",\n  \"referenceId\": \"topup_001\",\n  \"note\": \"Postman top-up\"\n}"
+            },
+            "url": "{{baseUrl}}/wallets/top-up"
+          }
+        },
+        {
+          "name": "Withdraw (Me)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20000,\n  \"provider\": \"BANK\",\n  \"accountNumber\": \"123456789\",\n  \"accountName\": \"POSTMAN USER\",\n  \"note\": \"Postman withdraw\"\n}"
+            },
+            "url": "{{baseUrl}}/wallets/withdraw"
+          }
+        },
+        {
+          "name": "Transfer (Me)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toUserId\": \"{{targetUserId}}\",\n  \"amount\": 10000,\n  \"message\": \"Postman transfer\"\n}"
+            },
+            "url": "{{baseUrl}}/wallets/transfer"
+          }
+        },
+        {
+          "name": "Get My Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/wallets/me/balance"
+          }
+        },
+        {
+          "name": "Get My Wallet History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/wallets/me/history?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Admin Adjust Balance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"amount\": 5000,\n  \"direction\": \"CREDIT\",\n  \"reason\": \"Admin manual adjustment\"\n}"
+            },
+            "url": "{{baseUrl}}/wallets/admin/adjust"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sell Requests",
+      "item": [
+        {
+          "name": "Create Sell Request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"price\": 250000,\n  \"accountUsername\": \"sell_acc_001\",\n  \"accountPassword\": \"sell_secret_001\",\n  \"status\": \"PENDING\",\n  \"description\": \"Need to sell account quickly\"\n}"
+            },
+            "url": "{{baseUrl}}/sell-requests"
+          }
+        },
+        {
+          "name": "Get Sell Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/sell-requests?page=1&limit=20&status=PENDING"
+          }
+        },
+        {
+          "name": "Get Sell Request By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/sell-requests/{{sellRequestId}}"
+          }
+        },
+        {
+          "name": "Update Sell Request",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}"
+            },
+            "url": "{{baseUrl}}/sell-requests/{{sellRequestId}}"
+          }
+        },
+        {
+          "name": "Delete Sell Request",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/sell-requests/{{sellRequestId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Account Trades",
+      "item": [
+        {
+          "name": "Get My Purchased Accounts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/account-trades/me/purchases?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Buy Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expectedPrice\": 130000\n}"
+            },
+            "url": "{{baseUrl}}/account-trades/buy/{{gameAccountId}}"
+          }
+        },
+        {
+          "name": "Approve Sell Request (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/account-trades/sell-requests/{{sellRequestId}}/approve"
+          }
+        },
+        {
+          "name": "Reject Sell Request (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Thong tin account khong hop le\"\n}"
+            },
+            "url": "{{baseUrl}}/account-trades/sell-requests/{{sellRequestId}}/reject"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Website Settings",
+      "item": [
+        {
+          "name": "Get Website Settings (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/website-settings"
+          }
+        },
+        {
+          "name": "Update Website Settings (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteName\": \"ShopAccount Pro\",\n  \"contactEmail\": \"admin@shopaccount.vn\",\n  \"commissionRate\": 7,\n  \"withdrawFee\": 8000,\n  \"maintenanceMode\": true,\n  \"maintenanceMessage\": \"He thong dang bao tri tu 23:00 den 01:00\"\n}"
+            },
+            "url": "{{baseUrl}}/website-settings"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Support Tickets",
+      "item": [
+        {
+          "name": "Create Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cannot login\",\n  \"description\": \"Login failed after buying account\",\n  \"category\": \"login\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets"
+          }
+        },
+        {
+          "name": "Get Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/support-tickets?page=1&limit=20&status=PENDING&search=login"
+          }
+        },
+        {
+          "name": "Get Support Ticket By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/support-tickets/{{supportTicketId}}"
+          }
+        },
+        {
+          "name": "Start Processing Ticket (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/support-tickets/{{supportTicketId}}/start-processing"
+          }
+        },
+        {
+          "name": "Reply Ticket (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Da tiep nhan ticket, chung toi dang xu ly.\",\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets/{{supportTicketId}}/reply"
+          }
+        },
+        {
+          "name": "Update Support Ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets/{{supportTicketId}}"
+          }
+        },
+        {
+          "name": "Delete Support Ticket",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": "{{baseUrl}}/support-tickets/{{supportTicketId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
