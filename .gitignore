@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 setup-vm.sh
+
+
+node_modules/
+playwright-report/
+test-results/
+test-snapshots/
+screenshots/
+dist/
+.env

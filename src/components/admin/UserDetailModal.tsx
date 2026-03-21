@@ -1,4 +1,4 @@
-import { X, Mail, Phone, Calendar, Wallet, ShoppingBag, CheckCircle, Ban } from 'lucide-react';
+import { X, Mail, Calendar, Wallet, ShoppingBag, CheckCircle, Ban } from 'lucide-react';
 import { User, UserStatus } from '../../services/types';
 
 interface UserDetailModalProps {
@@ -71,10 +71,7 @@ export function UserDetailModal({ user, onClose, onBan, onUnban }: UserDetailMod
                     <Mail className="w-4 h-4" />
                     <span className="text-sm">{user.email}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="w-4 h-4" />
-                    <span className="text-sm">{user.phone}</span>
-                  </div>
+
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm">Tham gia: {user.joinDate || new Date(user.createdAt || '').toLocaleDateString()}</span>

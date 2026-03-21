@@ -307,7 +307,6 @@ export function UsersManagement() {
                     </td>
                     <td className="py-4 px-6">
                       <p className="text-sm text-gray-600">{user.email}</p>
-                      <p className="text-sm text-gray-500">{user.phone || 'N/A'}</p>
                     </td>
                     <td className="py-4 px-6 font-semibold text-green-600">
                       {(user.balance || 0).toLocaleString('vi-VN')}đ
