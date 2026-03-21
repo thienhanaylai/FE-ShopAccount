@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Search, MessageSquare, CheckCircle, Clock, Eye } from 'lucide-react';
-import { SupportDetailModal } from '../../components/admin/SupportDetailModal';
+import { SupportDetailModal, TicketData } from '../../components/admin/SupportDetailModal';
 
 export function SupportManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [showDetailModal, setShowDetailModal] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState<TicketData | null>(null);
 
   const tickets = [
     {
@@ -127,20 +127,20 @@ export function SupportManagement() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleResolve = (ticket: any) => {
+  const handleResolve = (ticket: TicketData) => {
     alert(`Đã đánh dấu ticket ${ticket.id} là đã giải quyết`);
     setShowDetailModal(null);
   };
 
-  const handleReply = (ticket: any, message: string) => {
-    alert(`Đã gửi tin nhắn: ${message}`);
+  const handleReply = (ticket: TicketData, message: string) => {
+    alert(`Đã gửi tin nhắn: ${message} cho ticket ${ticket.id}`);
   };
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Quản lý hỗ trợ</h1>
+          <h1 className="text-3xl font-bold text-[#252A34] mb-2">Quản lý hỗ trợ</h1>
           <p className="text-gray-600">Tổng số: {tickets.length} yêu cầu</p>
         </div>
       </div>
@@ -159,7 +159,7 @@ export function SupportManagement() {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-2">
             <p className="text-gray-600">Đang xử lý</p>
-            <MessageSquare className="w-5 h-5 text-blue-500" />
+            <MessageSquare className="w-5 h-5 text-[#08D9D6]" />
           </div>
           <p className="text-2xl font-bold text-gray-800">
             {tickets.filter(t => t.status === 'in_progress').length}
@@ -196,7 +196,7 @@ export function SupportManagement() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm yêu cầu hỗ trợ..."
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -204,7 +204,7 @@ export function SupportManagement() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="open">Mới</option>
@@ -237,7 +237,7 @@ export function SupportManagement() {
             <tbody>
               {filteredTickets.map((ticket) => (
                 <tr key={ticket.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-6 font-medium text-[#0D4D8B]">{ticket.id}</td>
+                  <td className="py-4 px-6 font-medium text-[#FF2E63]">{ticket.id}</td>
                   <td className="py-4 px-6">
                     <p className="font-semibold text-gray-800">{ticket.user}</p>
                     <p className="text-sm text-gray-500">{ticket.userId}</p>
@@ -256,7 +256,7 @@ export function SupportManagement() {
                     </span>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                    <span className="inline-block bg-[#08D9D6]/10 text-[#08D9D6] px-3 py-1 rounded-full text-sm font-semibold">
                       {ticket.messages}
                     </span>
                   </td>
@@ -291,7 +291,7 @@ export function SupportManagement() {
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
               Trước
             </button>
-            <button className="px-4 py-2 bg-[#0D4D8B] text-white rounded-lg">
+            <button className="px-4 py-2 bg-[#FF2E63] text-white rounded-lg">
               1
             </button>
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">

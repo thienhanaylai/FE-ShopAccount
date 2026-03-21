@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeftRight, User, Wallet, Shield, AlertCircle, CheckCircle, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 export function TransferMoneyPage() {
   const { user } = useAuth();

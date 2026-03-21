@@ -10,13 +10,20 @@ import {
   Lock,
   Mail,
   Shield,
-  Calendar,
-  DollarSign,
 } from "lucide-react";
 import { useState } from "react";
 
+interface UserOrder {
+  id: string;
+  game: string;
+  rank?: string;
+  date: string;
+  amount: number;
+  status: string;
+}
+
 interface OrderDetailModalProps {
-  order: any;
+  order: UserOrder;
   onClose: () => void;
 }
 

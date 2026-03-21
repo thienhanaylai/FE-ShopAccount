@@ -1,5 +1,5 @@
 import { Users, Gamepad2, ShoppingCart, DollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export function AdminDashboard() {
   const stats = [
@@ -9,7 +9,7 @@ export function AdminDashboard() {
       change: '+12.5%', 
       trend: 'up',
       icon: Users,
-      color: 'bg-blue-500'
+      color: 'bg-[#FF2E63]'
     },
     { 
       label: 'Tài khoản đang bán', 
@@ -17,7 +17,7 @@ export function AdminDashboard() {
       change: '+8.2%', 
       trend: 'up',
       icon: Gamepad2,
-      color: 'bg-blue-500'
+      color: 'bg-[#08D9D6]'
     },
     { 
       label: 'Đơn hàng hôm nay', 
@@ -123,8 +123,8 @@ export function AdminDashboard() {
               <YAxis yAxisId="right" orientation="right" />
               <Tooltip />
               <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8b5cf6" name="Doanh thu (Triệu)" strokeWidth={2} />
-              <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#3b82f6" name="Đơn hàng" strokeWidth={2} />
+              <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#FF2E63" name="Doanh thu (Triệu)" strokeWidth={3} dot={{ fill: '#FF2E63' }} activeDot={{ r: 8 }} />
+              <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#08D9D6" name="Đơn hàng" strokeWidth={3} dot={{ fill: '#08D9D6' }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -158,7 +158,7 @@ export function AdminDashboard() {
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-800">Đơn hàng gần đây</h2>
-          <button className="text-[#0D4D8B] hover:text-[#0B4275] font-semibold">
+          <button className="text-[#FF2E63] hover:text-[#d9254f] font-semibold transition-colors">
             Xem tất cả →
           </button>
         </div>
@@ -177,7 +177,7 @@ export function AdminDashboard() {
             <tbody>
               {recentOrders.map((order) => (
                 <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium text-[#0D4D8B]">{order.id}</td>
+                  <td className="py-3 px-4 font-medium text-[#FF2E63]">{order.id}</td>
                   <td className="py-3 px-4">{order.user}</td>
                   <td className="py-3 px-4">{order.game}</td>
                   <td className="py-3 px-4 font-semibold">{order.price.toLocaleString('vi-VN')}đ</td>

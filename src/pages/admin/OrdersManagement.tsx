@@ -1,12 +1,27 @@
 import { useState } from 'react';
-import { Search, Filter, MoreVertical, Eye, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Search, Eye, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { OrderDetailModal } from '../../components/admin/OrderDetailModal';
+
+export interface OrderData {
+  id: string;
+  buyer: string;
+  seller: string;
+  accountId: string;
+  gameName: string;
+  rank: string;
+  price: number;
+  fee: number;
+  sellerReceive: number;
+  status: string;
+  paymentMethod: string;
+  orderDate: string;
+  completedDate: string | null;
+}
 
 export function OrdersManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState<OrderData | null>(null);
 
   const orders = [
     {
@@ -108,21 +123,21 @@ export function OrdersManagement() {
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.buyer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.seller.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.gameName.toLowerCase().includes(searchQuery.toLowerCase());
+      order.buyer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.seller.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.gameName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
   const totalRevenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.fee, 0);
 
-  const handleComplete = (order: any) => {
+  const handleComplete = (order: OrderData) => {
     alert(`Đã xác nhận đơn hàng ${order.id}`);
     setShowDetailModal(null);
   };
 
-  const handleCancel = (order: any) => {
+  const handleCancel = (order: OrderData) => {
     alert(`Đã hủy đơn hàng ${order.id}`);
     setShowDetailModal(null);
   };
@@ -131,10 +146,10 @@ export function OrdersManagement() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Quản lý đơn hàng</h1>
+          <h1 className="text-3xl font-bold text-[#252A34] mb-2">Quản lý đơn hàng</h1>
           <p className="text-gray-600">Tổng số: {orders.length} đơn hàng</p>
         </div>
-        <div className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white px-6 py-4 rounded-xl">
+        <div className="bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white px-6 py-4 rounded-xl shadow-lg shadow-pink-500/20">
           <p className="text-sm opacity-90">Tổng hoa hồng</p>
           <p className="text-2xl font-bold">{totalRevenue.toLocaleString('vi-VN')}đ</p>
         </div>
@@ -191,7 +206,7 @@ export function OrdersManagement() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm đơn hàng..."
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -199,7 +214,7 @@ export function OrdersManagement() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="pending">Chờ xử lý</option>
@@ -232,12 +247,12 @@ export function OrdersManagement() {
             <tbody>
               {filteredOrders.map((order) => (
                 <tr key={order.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-6 font-medium text-[#0D4D8B]">{order.id}</td>
+                  <td className="py-4 px-6 font-medium text-[#FF2E63]">{order.id}</td>
                   <td className="py-4 px-6 text-gray-800">{order.buyer}</td>
                   <td className="py-4 px-6 text-gray-600">{order.seller}</td>
                   <td className="py-4 px-6">
                     <p className="font-semibold text-gray-800">{order.gameName}</p>
-                    <p className="text-sm text-[#0D4D8B]">{order.rank}</p>
+                    <p className="text-sm text-[#08D9D6]">{order.rank}</p>
                   </td>
                   <td className="py-4 px-6 font-semibold text-gray-800">
                     {order.price.toLocaleString('vi-VN')}đ
@@ -283,7 +298,7 @@ export function OrdersManagement() {
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
               Trước
             </button>
-            <button className="px-4 py-2 bg-[#0D4D8B] text-white rounded-lg">
+            <button className="px-4 py-2 bg-[#FF2E63] text-white rounded-lg">
               1
             </button>
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">

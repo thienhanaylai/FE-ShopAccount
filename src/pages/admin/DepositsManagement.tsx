@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
 
 export function DepositsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,7 +157,7 @@ export function DepositsManagement() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm giao dịch..."
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -165,7 +165,7 @@ export function DepositsManagement() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="pending">Chờ xử lý</option>
@@ -196,7 +196,7 @@ export function DepositsManagement() {
             <tbody>
               {filteredDeposits.map((deposit) => (
                 <tr key={deposit.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-6 font-medium text-[#0D4D8B]">{deposit.id}</td>
+                  <td className="py-4 px-6 font-medium text-[#FF2E63]">{deposit.id}</td>
                   <td className="py-4 px-6">
                     <p className="font-semibold text-gray-800">{deposit.user}</p>
                     <p className="text-sm text-gray-500">{deposit.userId}</p>
@@ -253,7 +253,7 @@ export function DepositsManagement() {
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
               Trước
             </button>
-            <button className="px-4 py-2 bg-[#0D4D8B] text-white rounded-lg">
+            <button className="px-4 py-2 bg-[#FF2E63] text-white rounded-lg shadow-md shadow-pink-500/20">
               1
             </button>
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">

@@ -1,13 +1,25 @@
 import { useState } from 'react';
-import { Search, Plus, Edit, Trash2, Eye, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { DeleteConfirmModal } from '../../components/admin/DeleteConfirmModal';
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  description: string;
+  accountCount: number;
+  isActive: boolean;
+  order: number;
+  createdDate: string;
+}
 
 export function CategoriesManagement() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState<any>(null);
-  const [showEditModal, setShowEditModal] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState<Category | null>(null);
+  const [showEditModal, setShowEditModal] = useState<Partial<Category> | null>(null);
 
-  const [categories, setCategories] = useState([
+  const [categories, setCategories] = useState<Category[]>([
     {
       id: 'CAT001',
       name: 'Liên Minh Huyền Thoại',
@@ -70,7 +82,7 @@ export function CategoriesManagement() {
     cat.slug.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (category: any) => {
+  const handleDelete = (category: Category) => {
     setCategories(prev => prev.filter(c => c.id !== category.id));
     setShowDeleteModal(null);
     alert(`Đã xóa danh mục ${category.name}`);
@@ -93,7 +105,7 @@ export function CategoriesManagement() {
         </div>
         <button 
           onClick={() => setShowEditModal({})}
-          className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white px-6 py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition flex items-center gap-2"
+          className="bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white px-6 py-3 rounded-lg font-semibold hover:from-[#252A34] hover:to-[#d9254f] transition flex items-center gap-2 shadow-lg shadow-pink-500/20"
         >
           <Plus className="w-5 h-5" />
           Thêm danh mục
@@ -114,7 +126,7 @@ export function CategoriesManagement() {
         </div>
         <div className="bg-white rounded-xl shadow-lg p-6">
           <p className="text-gray-600 mb-1">Tổng tài khoản</p>
-          <p className="text-3xl font-bold text-[#0D4D8B]">
+          <p className="text-3xl font-bold text-[#FF2E63]">
             {categories.reduce((sum, c) => sum + c.accountCount, 0)}
           </p>
         </div>
@@ -129,7 +141,7 @@ export function CategoriesManagement() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm danh mục..."
-            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
           />
         </div>
       </div>
@@ -169,7 +181,7 @@ export function CategoriesManagement() {
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Số tài khoản:</span>
-                  <span className="font-bold text-[#0D4D8B]">{category.accountCount}</span>
+                  <span className="font-bold text-[#FF2E63]">{category.accountCount}</span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-sm text-gray-600">Thứ tự:</span>
@@ -241,8 +253,8 @@ export function CategoriesManagement() {
               alert('Đã cập nhật danh mục!');
             } else {
               // Create
-              const newCategory = {
-                ...data,
+              const newCategory: Category = {
+                ...(data as Category),
                 id: `CAT${(categories.length + 1).toString().padStart(3, '0')}`,
                 accountCount: 0,
                 createdDate: new Date().toLocaleDateString('vi-VN')
@@ -258,8 +270,14 @@ export function CategoriesManagement() {
   );
 }
 
+interface EditCategoryModalProps {
+  category: Partial<Category> | null;
+  onClose: () => void;
+  onSave: (data: Partial<Category>) => void;
+}
+
 // Edit Category Modal Component
-function EditCategoryModal({ category, onClose, onSave }: any) {
+function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps) {
   const [formData, setFormData] = useState({
     name: category?.name || '',
     slug: category?.slug || '',
@@ -289,11 +307,11 @@ function EditCategoryModal({ category, onClose, onSave }: any) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-2xl max-w-2xl w-full">
-        <div className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white p-6 flex items-center justify-between rounded-t-2xl">
+        <div className="bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white p-6 flex items-center justify-between rounded-t-2xl shadow-lg">
           <h2 className="text-2xl font-bold">
             {isEdit ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition">
+          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition text-white">
             <Plus className="w-6 h-6 rotate-45" />
           </button>
         </div>
@@ -309,7 +327,7 @@ function EditCategoryModal({ category, onClose, onSave }: any) {
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="VD: Liên Minh Huyền Thoại"
             />
           </div>
@@ -324,7 +342,7 @@ function EditCategoryModal({ category, onClose, onSave }: any) {
               value={formData.slug}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="VD: lien-minh-huyen-thoai"
             />
           </div>
@@ -338,7 +356,7 @@ function EditCategoryModal({ category, onClose, onSave }: any) {
               name="icon"
               value={formData.icon}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="🎮"
             />
           </div>
@@ -352,7 +370,7 @@ function EditCategoryModal({ category, onClose, onSave }: any) {
               value={formData.description}
               onChange={handleChange}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD] resize-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63] resize-none"
               placeholder="Mô tả ngắn về danh mục"
             />
           </div>
@@ -367,7 +385,7 @@ function EditCategoryModal({ category, onClose, onSave }: any) {
               value={formData.order}
               onChange={handleChange}
               min="1"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             />
           </div>
 
@@ -377,7 +395,7 @@ function EditCategoryModal({ category, onClose, onSave }: any) {
               name="isActive"
               checked={formData.isActive}
               onChange={handleChange}
-              className="w-4 h-4 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+              className="w-4 h-4 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
             />
             <label className="text-sm text-gray-700">Kích hoạt danh mục</label>
           </div>
@@ -385,7 +403,7 @@ function EditCategoryModal({ category, onClose, onSave }: any) {
           <div className="flex gap-3 pt-4 border-t">
             <button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition"
+              className="flex-1 bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white py-3 rounded-lg font-semibold hover:from-[#252A34] hover:to-[#d9254f] transition shadow-lg shadow-pink-500/20"
             >
               {isEdit ? 'Lưu thay đổi' : 'Thêm danh mục'}
             </button>

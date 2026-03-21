@@ -36,6 +36,7 @@ Các lệnh thường dùng:
 | `npm run build`   | Build production             |
 | `npm run lint`    | Kiểm tra lỗi ESLint          |
 | `npm run preview` | Xem trước bản build          |
+| `npm install framer-motion` | Cài hành động nếu chưa có |
 
 ---
 

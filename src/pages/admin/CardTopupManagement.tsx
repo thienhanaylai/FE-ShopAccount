@@ -121,7 +121,7 @@ export function CardTopupManagement() {
             <p className="text-sm opacity-90">Tổng đã nạp</p>
             <p className="text-2xl font-bold">{totalCompleted.toLocaleString('vi-VN')}đ</p>
           </div>
-          <div className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white px-6 py-4 rounded-xl">
+          <div className="bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white px-6 py-4 rounded-xl shadow-lg shadow-pink-500/20">
             <p className="text-sm opacity-90">Lợi nhuận</p>
             <p className="text-2xl font-bold">{totalProfit.toLocaleString('vi-VN')}đ</p>
           </div>
@@ -179,7 +179,7 @@ export function CardTopupManagement() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm giao dịch..."
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -187,7 +187,7 @@ export function CardTopupManagement() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="pending">Chờ xử lý</option>
@@ -221,7 +221,7 @@ export function CardTopupManagement() {
             <tbody>
               {filteredTopups.map((topup) => (
                 <tr key={topup.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-6 font-medium text-[#0D4D8B]">{topup.id}</td>
+                  <td className="py-4 px-6 font-medium text-[#FF2E63]">{topup.id}</td>
                   <td className="py-4 px-6">
                     <p className="font-semibold text-gray-800">{topup.user}</p>
                     <p className="text-sm text-gray-500">{topup.userId}</p>
@@ -285,7 +285,7 @@ export function CardTopupManagement() {
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
               Trước
             </button>
-            <button className="px-4 py-2 bg-[#0D4D8B] text-white rounded-lg">
+            <button className="px-4 py-2 bg-[#FF2E63] text-white rounded-lg shadow-md shadow-pink-500/20">
               1
             </button>
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">

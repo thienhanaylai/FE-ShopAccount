@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Wallet, CreditCard, Building2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Wallet, CheckCircle, ArrowLeft } from 'lucide-react';
 
 export function DepositPage() {
   const [selectedMethod, setSelectedMethod] = useState<string>('');

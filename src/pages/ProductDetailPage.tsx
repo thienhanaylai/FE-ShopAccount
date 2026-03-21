@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router';
-import { Star, Shield, Clock, CheckCircle, AlertCircle, ChevronLeft } from 'lucide-react';
+import { Shield, CheckCircle, AlertCircle, ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
 
 export function ProductDetailPage() {

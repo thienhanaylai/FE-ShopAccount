@@ -1,69 +1,86 @@
 import { AxiosError } from "axios";
 import { ApiError } from "../services/types";
 
+type ErrorMessagePayload = {
+  message?: string | string[];
+  error?: string;
+};
+
 class ErrorHandler {
-  static handleError(error: AxiosError | Error): ApiError {
+  private static normalizeMessage(message?: string | string[]): string {
+    if (Array.isArray(message)) {
+      return message.join("; ");
+    }
+
+    if (typeof message === "string" && message.trim().length > 0) {
+      return message;
+    }
+
+    return "Đã có lỗi xảy ra. Vui lòng thử lại.";
+  }
+
+  private static getAxiosStatus(error: AxiosError): number {
+    return error.response?.status ?? 500;
+  }
+
+  static handleError(error: unknown): ApiError {
     if (error instanceof AxiosError) {
-      // Handle Axios error
-      const status = error.response?.status || 500;
-      const data = error.response?.data as any;
+      const statusCode = this.getAxiosStatus(error);
+      const data = error.response?.data as ErrorMessagePayload | undefined;
 
       return {
-        statusCode: status,
-        message: data?.message || error.message,
+        statusCode,
+        message: this.normalizeMessage(data?.message) || error.message,
         error: data?.error || "Error",
       };
     }
 
-    // Handle generic Error
+    if (error instanceof Error) {
+      return {
+        statusCode: 500,
+        message: error.message || "Đã có lỗi xảy ra. Vui lòng thử lại.",
+        error: "Error",
+      };
+    }
+
     return {
       statusCode: 500,
-      message: error.message || "An unknown error occurred",
+      message: "Đã có lỗi xảy ra. Vui lòng thử lại.",
       error: "Error",
     };
   }
 
-  static getErrorMessage(error: AxiosError | Error): string {
-    if (error instanceof AxiosError) {
-      const data = error.response?.data as any;
-      return data?.message || error.message || "An error occurred";
-    }
-    return error.message || "An unknown error occurred";
+  static getErrorMessage(error: unknown): string {
+    const normalizedError = this.handleError(error);
+    return normalizedError.message;
   }
 
-  static isAuthError(error: AxiosError | Error): boolean {
+  private static hasStatus(error: unknown, statusCode: number): boolean {
     if (error instanceof AxiosError) {
-      return error.response?.status === 401;
+      return this.getAxiosStatus(error) === statusCode;
     }
+
     return false;
   }
 
-  static isNotFoundError(error: AxiosError | Error): boolean {
-    if (error instanceof AxiosError) {
-      return error.response?.status === 404;
-    }
-    return false;
+  static isAuthError(error: unknown): boolean {
+    return this.hasStatus(error, 401);
   }
 
-  static isValidationError(error: AxiosError | Error): boolean {
-    if (error instanceof AxiosError) {
-      return error.response?.status === 400;
-    }
-    return false;
+  static isNotFoundError(error: unknown): boolean {
+    return this.hasStatus(error, 404);
   }
 
-  static isConflictError(error: AxiosError | Error): boolean {
-    if (error instanceof AxiosError) {
-      return error.response?.status === 409;
-    }
-    return false;
+  static isValidationError(error: unknown): boolean {
+    return this.hasStatus(error, 400);
   }
 
-  static isForbiddenError(error: AxiosError | Error): boolean {
-    if (error instanceof AxiosError) {
-      return error.response?.status === 403;
-    }
-    return false;
+  static isConflictError(error: unknown): boolean {
+    return this.hasStatus(error, 409);
+  }
+
+  static isForbiddenError(error: unknown): boolean {
+    return this.hasStatus(error, 403);
   }
 }
 

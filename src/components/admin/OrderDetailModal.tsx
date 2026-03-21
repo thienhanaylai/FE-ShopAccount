@@ -1,7 +1,8 @@
-import { X, User, Gamepad2, DollarSign, CreditCard, Calendar, Package, CheckCircle } from 'lucide-react';
+import { X, User, Gamepad2, DollarSign, CreditCard, Calendar, CheckCircle } from 'lucide-react';
+import { OrderData } from '../../pages/admin/OrdersManagement';
 
 interface OrderDetailModalProps {
-  order: any;
+  order: OrderData;
   onClose: () => void;
   onComplete?: () => void;
   onCancel?: () => void;
@@ -19,10 +20,10 @@ export function OrderDetailModal({ order, onClose, onComplete, onCancel }: Order
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white p-6 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white p-6 flex items-center justify-between rounded-t-2xl shadow-lg">
           <div>
             <h2 className="text-2xl font-bold mb-1">Chi tiết đơn hàng</h2>
-            <p className="text-blue-100">{order.id}</p>
+            <p className="text-gray-200 opacity-90">{order.id}</p>
           </div>
           <button
             onClick={onClose}
@@ -36,26 +37,25 @@ export function OrderDetailModal({ order, onClose, onComplete, onCancel }: Order
           {/* Status */}
           <div className="bg-gray-50 rounded-xl p-6 text-center">
             <div className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-full shadow-lg mb-3">
-              <span className={`w-3 h-3 rounded-full ${
-                order.status === 'completed' ? 'bg-green-500' :
-                order.status === 'processing' ? 'bg-blue-500 animate-pulse' :
-                order.status === 'pending' ? 'bg-yellow-500' :
-                'bg-red-500'
-              }`} />
+              <span className={`w-3 h-3 rounded-full ${order.status === 'completed' ? 'bg-green-500' :
+                  order.status === 'processing' ? 'bg-blue-500 animate-pulse' :
+                    order.status === 'pending' ? 'bg-yellow-500' :
+                      'bg-red-500'
+                }`} />
               <span className="font-semibold text-gray-800">
                 {order.status === 'completed' ? 'Đơn hàng đã hoàn thành' :
-                 order.status === 'processing' ? 'Đang xử lý đơn hàng' :
-                 order.status === 'pending' ? 'Chờ xử lý' :
-                 'Đã hủy'}
+                  order.status === 'processing' ? 'Đang xử lý đơn hàng' :
+                    order.status === 'pending' ? 'Chờ xử lý' :
+                      'Đã hủy'}
               </span>
             </div>
           </div>
 
           {/* Customer & Seller Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-blue-50 rounded-xl p-6">
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 hover:border-[#08D9D6] transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <User className="w-5 h-5 text-blue-600" />
+                <User className="w-5 h-5 text-[#08D9D6]" />
                 <h3 className="font-semibold text-gray-800">Người mua</h3>
               </div>
               <p className="text-lg font-semibold text-gray-800">{order.buyer}</p>
@@ -71,16 +71,16 @@ export function OrderDetailModal({ order, onClose, onComplete, onCancel }: Order
           </div>
 
           {/* Product Info */}
-          <div className="bg-gray-50 rounded-xl p-6">
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Gamepad2 className="w-5 h-5 text-[#0D4D8B]" />
+              <Gamepad2 className="w-5 h-5 text-[#FF2E63]" />
               <h3 className="font-semibold text-gray-800">Sản phẩm</h3>
             </div>
             <div className="bg-white rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="font-semibold text-gray-800 text-lg">{order.gameName}</p>
-                  <p className="text-[#0D4D8B]">{order.rank}</p>
+                  <p className="text-[#FF2E63]">{order.rank}</p>
                 </div>
                 <p className="text-sm text-gray-500">ID: {order.accountId}</p>
               </div>
@@ -108,9 +108,9 @@ export function OrderDetailModal({ order, onClose, onComplete, onCancel }: Order
                   <span className="font-bold text-green-600 text-lg">{order.sellerReceive.toLocaleString('vi-VN')}đ</span>
                 </div>
               </div>
-              <div className="bg-blue-50 rounded-lg p-3 flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-800">
+              <div className="bg-gray-100 rounded-lg p-3 flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-[#08D9D6]" />
+                <span className="text-sm text-gray-700">
                   Phương thức: <span className="font-semibold">{order.paymentMethod}</span>
                 </span>
               </div>
@@ -118,18 +118,17 @@ export function OrderDetailModal({ order, onClose, onComplete, onCancel }: Order
           </div>
 
           {/* Timeline */}
-          <div className="bg-gray-50 rounded-xl p-6">
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Calendar className="w-5 h-5 text-[#0D4D8B]" />
+              <Calendar className="w-5 h-5 text-[#FF2E63]" />
               <h3 className="font-semibold text-gray-800">Tiến trình</h3>
             </div>
             <div className="space-y-4">
               {timeline.map((step, index) => (
                 <div key={index} className="flex gap-4">
                   <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      step.completed ? 'bg-green-500' : 'bg-gray-300'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.completed ? 'bg-green-500' : 'bg-gray-300'
+                      }`}>
                       {step.completed && <CheckCircle className="w-5 h-5 text-white" />}
                     </div>
                     {index < timeline.length - 1 && (

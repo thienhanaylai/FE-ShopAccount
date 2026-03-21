@@ -59,7 +59,7 @@ export function SettingsManagement() {
         </div>
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white px-6 py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition"
+          className="flex items-center gap-2 bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white px-6 py-3 rounded-lg font-semibold hover:from-[#252A34] hover:to-[#d9254f] transition shadow-lg shadow-pink-500/20"
         >
           <Save className="w-5 h-5" />
           Lưu cài đặt
@@ -70,8 +70,8 @@ export function SettingsManagement() {
         {/* General Settings */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-3 mb-6">
-            <Globe className="w-6 h-6 text-[#0D4D8B]" />
-            <h2 className="text-xl font-bold text-gray-800">Cài đặt chung</h2>
+            <Globe className="w-6 h-6 text-[#FF2E63]" />
+            <h2 className="text-xl font-bold text-[#252A34]">Cài đặt chung</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -84,7 +84,7 @@ export function SettingsManagement() {
                 name="siteName"
                 value={settings.siteName}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
 
@@ -97,7 +97,7 @@ export function SettingsManagement() {
                 name="contactEmail"
                 value={settings.contactEmail}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
 
@@ -110,7 +110,7 @@ export function SettingsManagement() {
                 value={settings.siteDescription}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD] resize-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63] resize-none"
               />
             </div>
 
@@ -123,7 +123,7 @@ export function SettingsManagement() {
                 name="contactPhone"
                 value={settings.contactPhone}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -149,7 +149,7 @@ export function SettingsManagement() {
                 min="0"
                 max="100"
                 step="0.5"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
 
@@ -164,7 +164,7 @@ export function SettingsManagement() {
                 onChange={handleChange}
                 min="0"
                 step="10000"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
 
@@ -179,7 +179,7 @@ export function SettingsManagement() {
                 onChange={handleChange}
                 min="0"
                 step="1000"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -204,7 +204,7 @@ export function SettingsManagement() {
                 onChange={handleChange}
                 min="0"
                 max="100"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
 
@@ -219,7 +219,7 @@ export function SettingsManagement() {
                 onChange={handleChange}
                 min="0"
                 max="100"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
 
@@ -234,7 +234,7 @@ export function SettingsManagement() {
                 onChange={handleChange}
                 min="0"
                 max="100"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
 
@@ -249,7 +249,7 @@ export function SettingsManagement() {
                 onChange={handleChange}
                 min="0"
                 max="100"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -269,7 +269,7 @@ export function SettingsManagement() {
                 name="emailNotifications"
                 checked={settings.emailNotifications}
                 onChange={handleChange}
-                className="w-5 h-5 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+                className="w-5 h-5 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <div>
                 <p className="font-medium text-gray-800">Email thông báo</p>
@@ -283,7 +283,7 @@ export function SettingsManagement() {
                 name="smsNotifications"
                 checked={settings.smsNotifications}
                 onChange={handleChange}
-                className="w-5 h-5 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+                className="w-5 h-5 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <div>
                 <p className="font-medium text-gray-800">SMS thông báo</p>
@@ -297,7 +297,7 @@ export function SettingsManagement() {
                 name="orderNotifications"
                 checked={settings.orderNotifications}
                 onChange={handleChange}
-                className="w-5 h-5 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+                className="w-5 h-5 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <div>
                 <p className="font-medium text-gray-800">Thông báo đơn hàng</p>
@@ -311,7 +311,7 @@ export function SettingsManagement() {
                 name="depositNotifications"
                 checked={settings.depositNotifications}
                 onChange={handleChange}
-                className="w-5 h-5 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+                className="w-5 h-5 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <div>
                 <p className="font-medium text-gray-800">Thông báo nạp tiền</p>
@@ -335,7 +335,7 @@ export function SettingsManagement() {
                 name="requireEmailVerification"
                 checked={settings.requireEmailVerification}
                 onChange={handleChange}
-                className="w-5 h-5 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+                className="w-5 h-5 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <div>
                 <p className="font-medium text-gray-800">Bắt buộc xác thực email</p>
@@ -349,7 +349,7 @@ export function SettingsManagement() {
                 name="requirePhoneVerification"
                 checked={settings.requirePhoneVerification}
                 onChange={handleChange}
-                className="w-5 h-5 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+                className="w-5 h-5 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <div>
                 <p className="font-medium text-gray-800">Bắt buộc xác thực SĐT</p>
@@ -363,7 +363,7 @@ export function SettingsManagement() {
                 name="twoFactorAuth"
                 checked={settings.twoFactorAuth}
                 onChange={handleChange}
-                className="w-5 h-5 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+                className="w-5 h-5 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <div>
                 <p className="font-medium text-gray-800">Xác thực 2 yếu tố</p>
@@ -387,7 +387,7 @@ export function SettingsManagement() {
                 name="maintenanceMode"
                 checked={settings.maintenanceMode}
                 onChange={handleChange}
-                className="w-5 h-5 text-[#0D4D8B] rounded focus:ring-[#1EA7FD]"
+                className="w-5 h-5 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <div>
                 <p className="font-medium text-gray-800">Chế độ bảo trì</p>
@@ -405,7 +405,7 @@ export function SettingsManagement() {
                   value={settings.maintenanceMessage}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD] resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63] resize-none"
                 />
               </div>
             )}

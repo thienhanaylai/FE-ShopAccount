@@ -50,7 +50,7 @@ export function AdminSidebar({ onLogout }: AdminSidebarProps) {
       <div className="p-4 border-b border-gray-800 flex items-center justify-between">
         {!collapsed && (
           <div>
-            <h2 className="text-xl font-bold">Admin Panel</h2>
+            <h2 className="text-xl font-bold bg-gradient-to-r from-[#08D9D6] to-[#FF2E63] bg-clip-text text-transparent">Admin Panel</h2>
             <p className="text-xs text-gray-400">GameAccount.vn</p>
           </div>
         )}
@@ -71,7 +71,7 @@ export function AdminSidebar({ onLogout }: AdminSidebarProps) {
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                   isActive(item.path, item.exact)
-                    ? 'bg-[#F5A65B] text-white'
+                    ? 'bg-[#FF2E63] text-white shadow-lg shadow-pink-500/20'
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 }`}
                 title={collapsed ? item.label : ''}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Upload, Image, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Upload, ArrowLeft, CheckCircle } from 'lucide-react';
 
 export function SellAccountPage() {
   const [formData, setFormData] = useState({

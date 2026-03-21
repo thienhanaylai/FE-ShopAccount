@@ -24,6 +24,19 @@ class AuthService {
     axiosService.clearToken();
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const response = await axiosService.post<{ message: string }>("/auth/forgot-password", { email });
+    return response.data;
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    const response = await axiosService.post<{ message: string }>("/auth/reset-password", {
+      token,
+      password,
+    });
+    return response.data;
+  }
+
   getCurrentUser(): User | null {
     const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;

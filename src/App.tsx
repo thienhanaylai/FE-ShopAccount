@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthProvider';
+import { useAuth } from './hooks/useAuth';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
@@ -7,6 +8,9 @@ import { ShopPage } from './pages/ShopPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { AuthLayout } from './components/layouts/AuthLayout';
 import { DepositPage } from './pages/DepositPage';
 import { SellAccountPage } from './pages/SellAccountPage';
 import { SupportPage } from './pages/SupportPage';
@@ -79,8 +83,12 @@ function AppContent() {
         </Route>
 
         {/* Auth Routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+        </Route>
 
         {/* Public Routes */}
         <Route
@@ -98,6 +106,7 @@ function AppContent() {
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
+                  <Route path="/users" element={<Navigate to="/admin/users" replace />} />
                   <Route path="/shop" element={<ShopPage />} />
                   <Route path="/product/:id" element={<ProductDetailPage />} />
                   <Route path="/deposit" element={<DepositPage />} />

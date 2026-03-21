@@ -103,7 +103,10 @@ export interface User {
   balanceUpdatedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
-  passwordHash?: string;
+  joinDate?: string; // UI specific
+  totalSpent?: number; // UI specific
+  orders?: number; // UI specific
+  verified?: boolean; // UI specific
 }
 
 export interface AuthResponse {
@@ -116,14 +119,14 @@ export interface CreateUserRequest {
   username: string;
   email: string;
   password: string;
-  phone?: string;
+  phone?: string | null;
 }
 
 export interface UpdateUserRequest {
   username?: string;
   email?: string;
   password?: string;
-  phone?: string;
+  phone?: string | null;
   role?: UserRole;
   status?: UserStatus;
 }
@@ -407,9 +410,7 @@ export interface UpdateSupportTicketRequest {
   status?: SupportTicketStatus;
 }
 
-export interface StartProcessingSupportTicketRequest {
-  // Empty body, just endpoint
-}
+export type StartProcessingSupportTicketRequest = Record<string, unknown>;
 
 export interface ReplySupportTicketRequest {
   message: string;

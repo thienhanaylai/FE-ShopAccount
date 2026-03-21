@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { User, Mail, Phone, Wallet, ShoppingBag, Calendar, Edit, Shield, Settings, LogOut, ArrowRight, Eye, ArrowLeftRight } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { Mail, Wallet, ShoppingBag, Edit, Shield, LogOut, ArrowRight, Eye, ArrowLeftRight } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import { OrderDetailModal } from '../components/user/OrderDetailModal';
+
+interface Order {
+  id: string;
+  game: string;
+  rank: string;
+  amount: number;
+  date: string;
+  status: string;
+}
 
 export function UserProfilePage() {
   const { user, logout, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
-  const [showOrderDetail, setShowOrderDetail] = useState<any>(null);
+  const [showOrderDetail, setShowOrderDetail] = useState<Order | null>(null);
 
   if (!user) {
     return (

@@ -1,7 +1,19 @@
-import { X, User, DollarSign, Eye, Heart, Calendar, CheckCircle, XCircle, Edit } from 'lucide-react';
+import { X, User, Eye, Heart, Calendar, CheckCircle, XCircle, Edit } from 'lucide-react';
+
+interface AccountData {
+  id: string;
+  gameName: string;
+  rank: string;
+  price: number;
+  status: string;
+  seller: string;
+  views: number;
+  favorites: number;
+  createdDate: string;
+}
 
 interface AccountDetailModalProps {
-  account: any;
+  account: AccountData;
   onClose: () => void;
   onApprove?: () => void;
   onReject?: () => void;
@@ -29,10 +41,10 @@ export function AccountDetailModal({ account, onClose, onApprove, onReject, onEd
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white p-6 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white p-6 flex items-center justify-between rounded-t-2xl shadow-lg">
           <div>
             <h2 className="text-2xl font-bold mb-1">{account.gameName}</h2>
-            <p className="text-blue-100">{account.id}</p>
+            <p className="text-gray-200 opacity-90">{account.id}</p>
           </div>
           <button
             onClick={onClose}
@@ -69,7 +81,7 @@ export function AccountDetailModal({ account, onClose, onApprove, onReject, onEd
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Rank:</span>
-                  <span className="font-semibold text-[#0D4D8B]">{account.rank}</span>
+                  <span className="font-semibold text-[#FF2E63]">{account.rank}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Giá:</span>

@@ -1,15 +1,28 @@
 import { useState } from 'react';
-import { Search, Filter, MoreVertical, Edit, Trash2, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Eye, CheckCircle } from 'lucide-react';
 import { AccountDetailModal } from '../../components/admin/AccountDetailModal';
 import { RejectModal } from '../../components/admin/RejectModal';
+
+interface Account {
+  id: string;
+  gameName: string;
+  rank: string;
+  price: number;
+  seller: string;
+  status: string;
+  views: number;
+  favorites: number;
+  createdDate: string;
+  verified: boolean;
+  rejectedReason?: string;
+}
 
 export function AccountsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterGame, setFilterGame] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState<any>(null);
-  const [showRejectModal, setShowRejectModal] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState<Account | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState<Account | null>(null);
 
   const accounts = [
     {
@@ -105,12 +118,12 @@ export function AccountsManagement() {
     return matchesSearch && matchesGame && matchesStatus;
   });
 
-  const handleApprove = (account: any) => {
+  const handleApprove = (account: Account) => {
     alert(`Đã phê duyệt tài khoản ${account.id}`);
     setShowDetailModal(null);
   };
 
-  const handleReject = (account: any, reason: string) => {
+  const handleReject = (account: Account, reason: string) => {
     alert(`Đã từ chối tài khoản ${account.id}\nLý do: ${reason}`);
     setShowRejectModal(null);
     setShowDetailModal(null);
@@ -123,7 +136,7 @@ export function AccountsManagement() {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Quản lý tài khoản game</h1>
           <p className="text-gray-600">Tổng số: {accounts.length} tài khoản</p>
         </div>
-        <button className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white px-6 py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition">
+        <button className="bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white px-6 py-3 rounded-lg font-semibold hover:from-[#252A34] hover:to-[#d9254f] transition shadow-lg shadow-pink-500/20">
           + Thêm tài khoản
         </button>
       </div>
@@ -140,7 +153,7 @@ export function AccountsManagement() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm tài khoản..."
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -150,7 +163,7 @@ export function AccountsManagement() {
             <select
               value={filterGame}
               onChange={(e) => setFilterGame(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             >
               <option value="all">Tất cả game</option>
               <option value="Liên Minh Huyền Thoại">Liên Minh Huyền Thoại</option>
@@ -166,7 +179,7 @@ export function AccountsManagement() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang bán</option>
@@ -199,7 +212,7 @@ export function AccountsManagement() {
             <tbody>
               {filteredAccounts.map((account) => (
                 <tr key={account.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-6 font-medium text-[#0D4D8B]">{account.id}</td>
+                  <td className="py-4 px-6 font-medium text-[#FF2E63]">{account.id}</td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-gray-800">{account.gameName}</p>
@@ -208,7 +221,7 @@ export function AccountsManagement() {
                       )}
                     </div>
                   </td>
-                  <td className="py-4 px-6 text-[#0D4D8B]">{account.rank}</td>
+                  <td className="py-4 px-6 text-[#FF2E63]">{account.rank}</td>
                   <td className="py-4 px-6 font-semibold text-red-600">
                     {account.price.toLocaleString('vi-VN')}đ
                   </td>
@@ -253,7 +266,7 @@ export function AccountsManagement() {
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
               Trước
             </button>
-            <button className="px-4 py-2 bg-[#0D4D8B] text-white rounded-lg">
+            <button className="px-4 py-2 bg-[#FF2E63] text-white rounded-lg shadow-md shadow-pink-500/20">
               1
             </button>
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">

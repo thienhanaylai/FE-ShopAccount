@@ -3,11 +3,31 @@ import { Search, CheckCircle, XCircle, Eye, Upload } from 'lucide-react';
 import { RejectModal } from '../../components/admin/RejectModal';
 import { AccountDetailModal } from '../../components/admin/AccountDetailModal';
 
+interface SellRequest {
+  id: string;
+  user: string;
+  userId: string;
+  gameName: string;
+  rank: string;
+  price: number;
+  description: string;
+  images: number;
+  status: string;
+  submittedDate: string;
+  reviewedDate: string | null;
+  rejectedReason?: string;
+  // Fields for AccountDetailModal compatibility
+  seller: string;
+  views: number;
+  favorites: number;
+  createdDate: string;
+}
+
 export function SellRequestsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [showRejectModal, setShowRejectModal] = useState<any>(null);
-  const [showDetailModal, setShowDetailModal] = useState<any>(null);
+  const [showRejectModal, setShowRejectModal] = useState<SellRequest | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState<SellRequest | null>(null);
 
   const requests = [
     {
@@ -21,7 +41,11 @@ export function SellRequestsManagement() {
       images: 5,
       status: 'pending',
       submittedDate: '03/02/2024 14:30',
-      reviewedDate: null
+      reviewedDate: null,
+      seller: 'Nguyễn Văn A',
+      views: 0,
+      favorites: 0,
+      createdDate: '03/02/2024'
     },
     {
       id: '#REQ12344',
@@ -34,7 +58,11 @@ export function SellRequestsManagement() {
       images: 4,
       status: 'approved',
       submittedDate: '02/02/2024 10:20',
-      reviewedDate: '02/02/2024 15:30'
+      reviewedDate: '02/02/2024 15:30',
+      seller: 'Trần Thị B',
+      views: 120,
+      favorites: 15,
+      createdDate: '02/02/2024'
     },
     {
       id: '#REQ12343',
@@ -47,7 +75,11 @@ export function SellRequestsManagement() {
       images: 6,
       status: 'pending',
       submittedDate: '03/02/2024 09:15',
-      reviewedDate: null
+      reviewedDate: null,
+      seller: 'Lê Văn C',
+      views: 45,
+      favorites: 2,
+      createdDate: '03/02/2024'
     },
     {
       id: '#REQ12342',
@@ -61,7 +93,11 @@ export function SellRequestsManagement() {
       status: 'rejected',
       rejectedReason: 'Thông tin không đầy đủ',
       submittedDate: '01/02/2024 16:45',
-      reviewedDate: '02/02/2024 09:20'
+      reviewedDate: '02/02/2024 09:20',
+      seller: 'Phạm Thị D',
+      views: 32,
+      favorites: 1,
+      createdDate: '01/02/2024'
     },
     {
       id: '#REQ12341',
@@ -74,7 +110,11 @@ export function SellRequestsManagement() {
       images: 3,
       status: 'approved',
       submittedDate: '01/02/2024 11:30',
-      reviewedDate: '01/02/2024 14:20'
+      reviewedDate: '01/02/2024 14:20',
+      seller: 'Hoàng Văn E',
+      views: 89,
+      favorites: 8,
+      createdDate: '01/02/2024'
     },
   ];
 
@@ -104,12 +144,12 @@ export function SellRequestsManagement() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleApprove = (request: any) => {
+  const handleApprove = (request: SellRequest) => {
     alert(`Đã phê duyệt yêu cầu ${request.id}`);
     // Reload data
   };
 
-  const handleReject = (request: any, reason: string) => {
+  const handleReject = (request: SellRequest, reason: string) => {
     alert(`Đã từ chối yêu cầu ${request.id}\nLý do: ${reason}`);
     setShowRejectModal(null);
     // Reload data
@@ -166,7 +206,7 @@ export function SellRequestsManagement() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm yêu cầu..."
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
           </div>
@@ -174,7 +214,7 @@ export function SellRequestsManagement() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="pending">Chờ duyệt</option>
@@ -206,13 +246,13 @@ export function SellRequestsManagement() {
             <tbody>
               {filteredRequests.map((request) => (
                 <tr key={request.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-6 font-medium text-[#0D4D8B]">{request.id}</td>
+                  <td className="py-4 px-6 font-medium text-[#FF2E63]">{request.id}</td>
                   <td className="py-4 px-6">
                     <p className="font-semibold text-gray-800">{request.user}</p>
                     <p className="text-sm text-gray-500">{request.userId}</p>
                   </td>
                   <td className="py-4 px-6 font-semibold text-gray-800">{request.gameName}</td>
-                  <td className="py-4 px-6 text-[#0D4D8B]">{request.rank}</td>
+                  <td className="py-4 px-6 text-[#FF2E63]">{request.rank}</td>
                   <td className="py-4 px-6 font-semibold text-red-600">
                     {request.price.toLocaleString('vi-VN')}đ
                   </td>
@@ -282,7 +322,7 @@ export function SellRequestsManagement() {
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
               Trước
             </button>
-            <button className="px-4 py-2 bg-[#0D4D8B] text-white rounded-lg">
+            <button className="px-4 py-2 bg-[#FF2E63] text-white rounded-lg shadow-md shadow-pink-500/20">
               1
             </button>
             <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">

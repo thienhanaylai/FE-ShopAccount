@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosInstance, AxiosError, AxiosResponse, InternalAxiosRequestConfig, AxiosRequestConfig } from "axios";
 import { API_CONFIG } from "../config/api.config";
 
 class AxiosService {
@@ -75,23 +75,23 @@ class AxiosService {
     return this.instance;
   }
 
-  public async get<T>(url: string, config?: any) {
+  public async get<T>(url: string, config?: AxiosRequestConfig) {
     return this.instance.get<T>(url, config);
   }
 
-  public async post<T>(url: string, data?: any, config?: any) {
+  public async post<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
     return this.instance.post<T>(url, data, config);
   }
 
-  public async patch<T>(url: string, data?: any, config?: any) {
+  public async patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
     return this.instance.patch<T>(url, data, config);
   }
 
-  public async put<T>(url: string, data?: any, config?: any) {
+  public async put<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
     return this.instance.put<T>(url, data, config);
   }
 
-  public async delete<T>(url: string, config?: any) {
+  public async delete<T>(url: string, config?: AxiosRequestConfig) {
     return this.instance.delete<T>(url, config);
   }
 }

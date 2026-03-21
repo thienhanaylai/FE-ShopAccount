@@ -8,21 +8,22 @@ import {
   WalletHistoryFilters,
   PaginationResponse,
   Transaction,
+  ApiResponse,
 } from "./types";
 
 class WalletService {
-  async topUp(data: TopUpRequest): Promise<any> {
-    const response = await axiosService.post("/wallets/top-up", data);
+  async topUp(data: TopUpRequest): Promise<ApiResponse<unknown>> {
+    const response = await axiosService.post<ApiResponse<unknown>>("/wallets/top-up", data);
     return response.data;
   }
 
-  async withdraw(data: WithdrawRequest): Promise<any> {
-    const response = await axiosService.post("/wallets/withdraw", data);
+  async withdraw(data: WithdrawRequest): Promise<ApiResponse<unknown>> {
+    const response = await axiosService.post<ApiResponse<unknown>>("/wallets/withdraw", data);
     return response.data;
   }
 
-  async transfer(data: TransferRequest): Promise<any> {
-    const response = await axiosService.post("/wallets/transfer", data);
+  async transfer(data: TransferRequest): Promise<ApiResponse<unknown>> {
+    const response = await axiosService.post<ApiResponse<unknown>>("/wallets/transfer", data);
     return response.data;
   }
 
@@ -38,8 +39,8 @@ class WalletService {
     return response.data;
   }
 
-  async adminAdjust(data: BalanceAdjustRequest): Promise<any> {
-    const response = await axiosService.post("/wallets/admin/adjust", data);
+  async adminAdjust(data: BalanceAdjustRequest): Promise<ApiResponse<unknown>> {
+    const response = await axiosService.post<ApiResponse<unknown>>("/wallets/admin/adjust", data);
     return response.data;
   }
 }
