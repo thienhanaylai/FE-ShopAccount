@@ -1,90 +1,57 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: 'admin' | 'user';
-  balance: number;
-}
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { authService } from '../services/auth.service';
+import { User } from '../services/types';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
-  register: (username: string, email: string, password: string, phone: string) => boolean;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isLoading: boolean;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Tài khoản mẫu
-const DEMO_ACCOUNTS = [
-  {
-    id: 'admin1',
-    username: 'admin',
-    email: 'admin@gameaccount.vn',
-    password: 'admin123',
-    role: 'admin' as const,
-    balance: 10000000
-  },
-  {
-    id: 'user1',
-    username: 'user',
-    email: 'user@gameaccount.vn',
-    password: 'user123',
-    role: 'user' as const,
-    balance: 1500000
-  }
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = (email: string, password: string): boolean => {
-    const account = DEMO_ACCOUNTS.find(
-      acc => acc.email === email && acc.password === password
-    );
-
-    if (account) {
-      const { password: _, ...userWithoutPassword } = account;
-      setUser(userWithoutPassword);
-      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-      return true;
-    }
-    return false;
-  };
-
-  const register = (username: string, email: string, password: string, phone: string): boolean => {
-    // Mock registration - in real app, save to backend
-    const newUser = {
-      id: `user${Date.now()}`,
-      username,
-      email,
-      role: 'user' as const,
-      balance: 0
+  // Initialize auth state from localStorage on mount + listen for changes
+  useEffect(() => {
+    const initializeAuth = () => {
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
+      setIsLoading(false);
     };
 
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    return true;
-  };
+    initializeAuth();
+
+    // Listen for storage changes (login from another tab, logout, etc)
+    const handleStorageChange = () => {
+      initializeAuth();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const logout = () => {
+    authService.logout();
     setUser(null);
-    localStorage.removeItem('user');
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        login,
-        register,
         logout,
         isAuthenticated: !!user,
-        isAdmin: user?.role === 'admin'
+        isAdmin: user?.role === 'ADMIN',
+        isLoading,
+        setUser,
       }}
     >
       {children}

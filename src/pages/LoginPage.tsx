@@ -1,34 +1,44 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { authService } from '../services/auth.service';
 import { useAuth } from '../contexts/AuthContext';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     remember: false
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
     
-    const success = login(formData.email, formData.password);
-    
-    if (success) {
-      // Check if admin
-      if (formData.email === 'admin@gameaccount.vn') {
+    try {
+      const response = await authService.login({
+        email: formData.email,
+        password: formData.password
+      });
+      
+      // Update context with user info
+      setUser(response.user);
+      
+      if (response.user?.role === 'ADMIN') {
         navigate('/admin');
       } else {
         navigate('/');
       }
-    } else {
-      setError('Email hoặc mật khẩu không đúng!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Email hoặc mật khẩu không đúng!');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -40,17 +50,17 @@ export function LoginPage() {
     }));
   };
 
-  const handleDemoLogin = (type: 'admin' | 'user') => {
+  const handleDemoLogin = (type: 'admin' | 'customer') => {
     if (type === 'admin') {
       setFormData({
-        email: 'admin@gameaccount.vn',
-        password: 'admin123',
+        email: 'admin@shopaccount.local',
+        password: 'Admin@123',
         remember: false
       });
     } else {
       setFormData({
-        email: 'user@gameaccount.vn',
-        password: 'user123',
+        email: 'customer01@shopaccount.local',
+        password: 'Customer@123',
         remember: false
       });
     }
@@ -76,15 +86,15 @@ export function LoginPage() {
                 className="w-full text-left bg-white p-3 rounded-lg hover:bg-blue-50 transition border border-blue-200"
               >
                 <p className="text-sm font-semibold text-gray-800">👨‍💼 Admin</p>
-                <p className="text-xs text-gray-600">Email: admin@gameaccount.vn | Pass: admin123</p>
+                <p className="text-xs text-gray-600">admin@shopaccount.local / Admin@123</p>
               </button>
               <button
                 type="button"
-                onClick={() => handleDemoLogin('user')}
+                onClick={() => handleDemoLogin('customer')}
                 className="w-full text-left bg-white p-3 rounded-lg hover:bg-blue-50 transition border border-blue-200"
               >
-                <p className="text-sm font-semibold text-gray-800">👤 User</p>
-                <p className="text-xs text-gray-600">Email: user@gameaccount.vn | Pass: user123</p>
+                <p className="text-sm font-semibold text-gray-800">👤 Customer</p>
+                <p className="text-xs text-gray-600">customer01@shopaccount.local / Customer@123</p>
               </button>
             </div>
           </div>
@@ -164,9 +174,10 @@ export function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Đăng nhập
+              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
 
