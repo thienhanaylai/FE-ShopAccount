@@ -2,6 +2,10 @@ import { test, expect, Page } from '@playwright/test';
 
 async function loginAsAdmin(page: Page) {
   await page.goto('/login');
+  if (page.url().endsWith('/')) {
+    return;
+  }
+
   await expect(page.locator('form')).toBeVisible();
   await page.fill('input[type="email"]', 'admin@shopaccount.local');
   await page.fill('input[type="password"]', 'Admin@123');
@@ -101,9 +105,6 @@ test.describe('Admin Users Management', () => {
     const row = await getNonAdminRow(page);
     await row.locator('button[title="Chỉnh sửa"]').click();
     await expect(page.getByRole('heading', { name: 'Chỉnh sửa người dùng' })).toBeVisible();
-
-    const uniquePhone = `09${Date.now().toString().slice(-8)}`;
-    await page.locator('input[name="phone"]').fill(uniquePhone);
 
     page.once('dialog', async (dialog) => {
       expect(dialog.message()).toContain('Đã cập nhật người dùng!');

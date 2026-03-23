@@ -291,24 +291,24 @@ export function ResetPasswordPage() {
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`flex items-center gap-2 ${passwordStrength.hasMinLength ? "text-green-400" : "text-gray-500"}`}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <div className={`flex items-center gap-2 leading-none ${passwordStrength.hasMinLength ? "text-green-400" : "text-gray-500"}`}>
                         <CheckCircle2 className="w-3 h-3" />
                         <span>8+ ký tự</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${passwordStrength.hasUpperCase ? "text-green-400" : "text-gray-500"}`}>
+                      <div className={`flex items-center gap-2 leading-none ${passwordStrength.hasUpperCase ? "text-green-400" : "text-gray-500"}`}>
                         <CheckCircle2 className="w-3 h-3" />
                         <span>Chữ hoa</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${passwordStrength.hasLowerCase ? "text-green-400" : "text-gray-500"}`}>
+                      <div className={`flex items-center gap-2 leading-none ${passwordStrength.hasLowerCase ? "text-green-400" : "text-gray-500"}`}>
                         <CheckCircle2 className="w-3 h-3" />
                         <span>Chữ thường</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${passwordStrength.hasNumber ? "text-green-400" : "text-gray-500"}`}>
+                      <div className={`flex items-center gap-2 leading-none ${passwordStrength.hasNumber ? "text-green-400" : "text-gray-500"}`}>
                         <CheckCircle2 className="w-3 h-3" />
                         <span>Số</span>
                       </div>
-                      <div className={`flex items-center gap-2 col-span-2 ${passwordStrength.hasSpecialChar ? "text-green-400" : "text-gray-500"}`}>
+                      <div className={`flex items-center gap-2 leading-none ${passwordStrength.hasSpecialChar ? "text-green-400" : "text-gray-500"}`}>
                         <CheckCircle2 className="w-3 h-3" />
                         <span>Ký tự đặc biệt</span>
                       </div>

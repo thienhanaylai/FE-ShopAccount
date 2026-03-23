@@ -1,64 +1,114 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Gamepad2, Shield, Zap, TrendingUp, Star, Users } from 'lucide-react';
 import { Link } from 'react-router';
 import { GameAccountCard } from '../components/GameAccountCard';
+import { gameCategoryService } from '../services/gameCategory.service';
+import { gameAccountService } from '../services/gameAccount.service';
+import {
+  GameAccountStatus,
+  type GameAccount,
+  type GameCategory,
+  type HomeAccountCard,
+  type HomeGameCard,
+} from '../services/types';
+import ErrorHandler from '../utils/errorHandler';
+
+const FALLBACK_GAME_IMAGE = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080';
+
+const HOME_STATS = [
+  { label: 'Tài khoản đã bán', value: '15,000+', icon: TrendingUp },
+  { label: 'Người dùng', value: '50,000+', icon: Users },
+  { label: 'Đánh giá 5 sao', value: '12,000+', icon: Star },
+];
+
+const resolveAccountImage = (images?: GameAccount['images']): string => {
+  if (!images || images.length === 0) {
+    return FALLBACK_GAME_IMAGE;
+  }
+
+  const firstImage = images[0];
+  if (typeof firstImage === 'string') {
+    return firstImage;
+  }
+
+  return firstImage?.url || FALLBACK_GAME_IMAGE;
+};
+
+const mapFeaturedAccounts = (
+  accounts: GameAccount[],
+  categoryMap: Map<string, GameCategory>,
+): HomeAccountCard[] => {
+  return accounts.slice(0, 4).map((account) => {
+    const category = categoryMap.get(account.categoryId);
+    const rank = account.rank || (account.level ? `Level ${account.level}` : 'Tài khoản game');
+
+    return {
+      id: account.id,
+      gameName: category?.name || 'Tài khoản game',
+      rank,
+      price: account.price,
+      image: resolveAccountImage(account.images),
+      verified: true,
+      champions: account.description ? account.description.slice(0, 48) : `ID: ${account.username}`,
+      skins: account.level ? `Level ${account.level}` : undefined,
+    };
+  });
+};
+
+const mapGames = (categories: GameCategory[], accounts: GameAccount[]): HomeGameCard[] => {
+  const countByCategoryId = new Map<string, number>();
+  accounts.forEach((account) => {
+    const current = countByCategoryId.get(account.categoryId) ?? 0;
+    countByCategoryId.set(account.categoryId, current + 1);
+  });
+
+  return categories.slice(0, 4).map((category) => ({
+    name: category.name,
+    count: countByCategoryId.get(category.id) ?? 0,
+    image: category.icon || FALLBACK_GAME_IMAGE,
+  }));
+};
 
 export function HomePage() {
-  const featuredAccounts = [
-    {
-      id: '1',
-      gameName: 'Liên Minh Huyền Thoại',
-      rank: 'Kim Cương III',
-      price: 2500000,
-      image: 'https://images.unsplash.com/photo-1619017120498-872bb10a14a6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsZWFndWUlMjBvZiUyMGxlZ2VuZHMlMjBnYW1lfGVufDF8fHx8MTc3MDAyOTEwOHww&ixlib=rb-4.1.0&q=80&w=1080',
-      verified: true,
-      champions: '145/165 Tướng',
-      skins: '89 Trang phục'
-    },
-    {
-      id: '2',
-      gameName: 'PUBG Mobile',
-      rank: 'Chinh Phục',
-      price: 1800000,
-      image: 'https://images.unsplash.com/photo-1564049489314-60d154ff107d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdWJnJTIwbW9iaWxlJTIwZ2FtaW5nfGVufDF8fHx8MTc3MDEwMzA0M3ww&ixlib=rb-4.1.0&q=80&w=1080',
-      verified: true,
-      timeLeft: '2 ngày',
-      champions: 'UC: 18,500',
-      skins: '156 Set đồ'
-    },
-    {
-      id: '3',
-      gameName: 'Genshin Impact',
-      rank: 'AR 58',
-      price: 3200000,
-      image: 'https://images.unsplash.com/photo-1769709992557-45387590ae7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnZW5zaGluJTIwaW1wYWN0JTIwZ2FtZXxlbnwxfHx8fDE3NzAwNDAxMDd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      verified: true,
-      champions: '23 nhân vật 5⭐',
-      skins: '12 vũ khí 5⭐'
-    },
-    {
-      id: '4',
-      gameName: 'FIFA Online 4',
-      rank: 'VIP 15',
-      price: 1500000,
-      image: 'https://images.unsplash.com/photo-1520298064646-747b5051dbb2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmaWZhJTIwZm9vdGJhbGwlMjBnYW1lfGVufDF8fHx8MTc3MDEwMzA0NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      verified: false,
-      champions: '25 cầu thủ Icon',
-      skins: 'BP: 850M+'
+  const [categories, setCategories] = useState<GameCategory[]>([]);
+  const [accounts, setAccounts] = useState<GameAccount[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const loadHomeData = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const [categoriesRes, accountsRes] = await Promise.all([
+        gameCategoryService.getList({ page: 1, limit: 8, isActive: true }),
+        gameAccountService.getList({ page: 1, limit: 12, status: GameAccountStatus.AVAILABLE }),
+      ]);
+
+      setCategories(categoriesRes.data || []);
+      setAccounts(accountsRes.data || []);
+    } catch (error) {
+      setErrorMessage(ErrorHandler.getErrorMessage(error));
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  }, []);
 
-  const stats = [
-    { label: 'Tài khoản đã bán', value: '15,000+', icon: TrendingUp },
-    { label: 'Người dùng', value: '50,000+', icon: Users },
-    { label: 'Đánh giá 5 sao', value: '12,000+', icon: Star },
-  ];
+  useEffect(() => {
+    void loadHomeData();
+  }, [loadHomeData]);
 
-  const games = [
-    { name: 'Liên Minh Huyền Thoại', count: 2345, image: 'https://images.unsplash.com/photo-1619017120498-872bb10a14a6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsZWFndWUlMjBvZiUyMGxlZ2VuZHMlMjBnYW1lfGVufDF8fHx8MTc3MDAyOTEwOHww&ixlib=rb-4.1.0&q=80&w=1080' },
-    { name: 'PUBG Mobile', count: 1876, image: 'https://images.unsplash.com/photo-1564049489314-60d154ff107d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdWJnJTIwbW9iaWxlJTIwZ2FtaW5nfGVufDF8fHx8MTc3MDEwMzA0M3ww&ixlib=rb-4.1.0&q=80&w=1080' },
-    { name: 'Genshin Impact', count: 1543, image: 'https://images.unsplash.com/photo-1769709992557-45387590ae7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnZW5zaGluJTIwaW1wYWN0JTIwZ2FtZXxlbnwxfHx8fDE3NzAwNDAxMDd8MA&ixlib=rb-4.1.0&q=80&w=1080' },
-    { name: 'Minecraft', count: 987, image: 'https://images.unsplash.com/photo-1759663173762-29a82ef36daf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5lY3JhZnQlMjBnYW1lJTIwd29ybGR8ZW58MXx8fHwxNzcwMTAzMDQzfDA&ixlib=rb-4.1.0&q=80&w=1080' },
-  ];
+  const categoryMap = useMemo(() => {
+    return new Map(categories.map((category) => [category.id, category]));
+  }, [categories]);
+
+  const featuredAccounts: HomeAccountCard[] = useMemo(() => {
+    return mapFeaturedAccounts(accounts, categoryMap);
+  }, [accounts, categoryMap]);
+
+  const games = useMemo(() => {
+    return mapGames(categories, accounts);
+  }, [accounts, categories]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -129,7 +179,7 @@ export function HomePage() {
       <div className="bg-gradient-to-r from-[#1EA7FD] to-[#F5A65B] text-white py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {stats.map((stat, index) => (
+            {HOME_STATS.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="flex items-center justify-center mb-2">
                   <stat.icon className="w-8 h-8" />
@@ -147,6 +197,20 @@ export function HomePage() {
         <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">
           Game phổ biến
         </h2>
+        {errorMessage && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 text-center">
+            {errorMessage}
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-32 rounded-xl bg-gray-200 animate-pulse" />
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
           {games.map((game, index) => (
             <Link
@@ -189,6 +253,9 @@ export function HomePage() {
             <GameAccountCard key={account.id} {...account} />
           ))}
         </div>
+        {!isLoading && featuredAccounts.length === 0 && (
+          <div className="mt-6 text-center text-gray-600">Chưa có tài khoản nổi bật để hiển thị.</div>
+        )}
       </div>
 
       {/* CTA Section */}

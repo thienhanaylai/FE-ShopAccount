@@ -84,7 +84,6 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
-  phone?: string;
 }
 
 export interface LoginRequest {
@@ -96,7 +95,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  phone: string | null;
+  password?: string;
   role: UserRole;
   status: UserStatus;
   balance?: number;
@@ -119,20 +118,17 @@ export interface CreateUserRequest {
   username: string;
   email: string;
   password: string;
-  phone?: string | null;
 }
 
 export interface UpdateUserRequest {
   username?: string;
   email?: string;
   password?: string;
-  phone?: string | null;
   role?: UserRole;
   status?: UserStatus;
 }
 
 export interface AdminUpdateUserRequest {
-  phone?: string;
   role?: UserRole;
   status?: UserStatus;
 }
@@ -147,6 +143,24 @@ export interface GameCategory {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// ============ HOME PAGE UI TYPES ============
+export interface HomeAccountCard {
+  id: string;
+  gameName: string;
+  rank: string;
+  price: number;
+  image: string;
+  verified: boolean;
+  champions?: string;
+  skins?: string;
+}
+
+export interface HomeGameCard {
+  name: string;
+  count: number;
+  image: string;
 }
 
 export interface CreateGameCategoryRequest {
