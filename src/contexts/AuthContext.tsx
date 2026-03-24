@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { authService } from '../services/auth.service';
-import { User } from '../services/types';
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { authService } from "../services/auth.service";
+import { User } from "../services/types";
 
 interface AuthContextType {
   user: User | null;
@@ -34,8 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       initializeAuth();
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const logout = () => {
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         logout,
         isAuthenticated: !!user,
-        isAdmin: user?.role === 'ADMIN',
+        isAdmin: user?.role === "ADMIN",
         isLoading,
         setUser,
       }}
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
