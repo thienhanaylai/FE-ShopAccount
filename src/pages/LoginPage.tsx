@@ -1,74 +1,91 @@
-import { useState } from "react";
-import { Link } from "react-router";
-import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { useNavigate } from "react-router";
-import { useAuth } from "../hooks/useAuth";
-import ErrorHandler from "../utils/errorHandler";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [isShowPassword, setIsShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-
-  const containerClass = "relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20";
-  const glowEffectClass = "absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-3xl opacity-20 blur-2xl";
-  const titleClass = "text-4xl font-black bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent";
-  const inputContainerClass = "relative group";
-  const inputClass = "pl-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-cyan-400/50 transition-all";
-  const passwordInputClass = "pl-12 pr-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-purple-400/50 transition-all";
-  const submitButtonClass = "w-full h-12 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 hover:from-cyan-400 hover:via-purple-400 hover:to-pink-400 text-white font-bold shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 transition-all duration-300 hover:scale-[1.02]";
-  const socialButtonClass = "flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 group";
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    remember: false
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage("");
-    setIsLoading(true);
-    try {
-      await login(email, password);
-      navigate("/");
-    } catch (error: unknown) {
-      setErrorMessage(ErrorHandler.getErrorMessage(error));
-    } finally {
-      setIsLoading(false);
+    setError('');
+    
+    const success = login(formData.email, formData.password);
+    
+    if (success) {
+      // Check if admin
+      if (formData.email === 'admin@gameaccount.vn') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } else {
+      setError('Email hoặc mật khẩu không đúng!');
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setIsShowPassword(!isShowPassword);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleDemoLogin = (type: 'admin' | 'user') => {
+    if (type === 'admin') {
+      setFormData({
+        email: 'admin@gameaccount.vn',
+        password: 'admin123',
+        remember: false
+      });
+    } else {
+      setFormData({
+        email: 'user@gameaccount.vn',
+        password: 'user123',
+        remember: false
+      });
+    }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="relative"
-    >
-      <div className={containerClass}>
-        <div className={glowEffectClass} />
+    <div className="min-h-screen bg-gradient-to-br from-[#0D4D8B] via-[#1EA7FD] to-[#F5A65B] py-12 px-4">
+      <div className="container mx-auto max-w-md">
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Đăng nhập</h1>
+            <p className="text-gray-600">Chào mừng bạn quay trở lại!</p>
+          </div>
 
-        <div className="relative">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-center mb-8"
-          >
-            <div className="inline-flex items-center gap-2 mb-4">
-              <Sparkles className="w-6 h-6 text-cyan-400" />
-              <h2 className={titleClass}>
-                Đăng nhập
-              </h2>
-              <Sparkles className="w-6 h-6 text-purple-400" />
+          {/* Demo Accounts */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm font-semibold text-blue-900 mb-3">🎯 Tài khoản demo:</p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('admin')}
+                className="w-full text-left bg-white p-3 rounded-lg hover:bg-blue-50 transition border border-blue-200"
+              >
+                <p className="text-sm font-semibold text-gray-800">👨‍💼 Admin</p>
+                <p className="text-xs text-gray-600">Email: admin@gameaccount.vn | Pass: admin123</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('user')}
+                className="w-full text-left bg-white p-3 rounded-lg hover:bg-blue-50 transition border border-blue-200"
+              >
+                <p className="text-sm font-semibold text-gray-800">👤 User</p>
+                <p className="text-xs text-gray-600">Email: user@gameaccount.vn | Pass: user123</p>
+              </button>
             </div>
             <p className="text-gray-300">Chào mừng game thủ trở lại!</p>
           </motion.div>
@@ -154,21 +171,15 @@ export function LoginPage() {
               >
                 Quên mật khẩu?
               </Link>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition"
             >
-              <Button
-                type="submit"
-                className={submitButtonClass}
-                disabled={isLoading}
-              >
-                {isLoading ? "Đang xử lý..." : "Đăng nhập ngay"}
-              </Button>
-            </motion.div>
+              Đăng nhập
+            </button>
           </form>
 
           <motion.div
