@@ -1,18 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { X, Mail, Calendar, Wallet, ShoppingBag, CheckCircle, Ban, Shield, AlertTriangle } from 'lucide-react';
-import {
-  Order,
-  OrderStatus,
-  Transaction,
-  TransactionMethod,
-  TransactionStatus,
-  User,
-  UserRole,
-  UserStatus,
-} from '../../services/types';
-import { orderService } from '../../services/order.service';
-import { transactionService } from '../../services/transaction.service';
-import ErrorHandler from '../../utils/errorHandler';
+import { X, Mail, Calendar, Wallet, ShoppingBag, CheckCircle, Ban } from 'lucide-react';
+import { User, UserStatus } from '../../services/types';
 
 interface UserDetailModalProps {
   user: User;
@@ -21,129 +8,17 @@ interface UserDetailModalProps {
   onUnban?: () => void;
 }
 
-const ORDER_STATUS_TEXT: Record<OrderStatus, string> = {
-  [OrderStatus.PAID]: 'Đã thanh toán',
-  [OrderStatus.COMPLETED]: 'Hoàn tất',
-  [OrderStatus.CANCELLED]: 'Đã hủy',
-  [OrderStatus.PENDING]: 'Chờ xử lý',
-};
-
-const TRANSACTION_STATUS_TEXT: Record<TransactionStatus, string> = {
-  [TransactionStatus.SUCCESS]: 'Thành công',
-  [TransactionStatus.FAILED]: 'Thất bại',
-  [TransactionStatus.REFUNDED]: 'Hoàn tiền',
-  [TransactionStatus.PENDING]: 'Đang xử lý',
-};
-
-const USER_STATUS_META: Partial<Record<UserStatus, { text: string; className: string }>> = {
-  [UserStatus.ACTIVE]: { text: 'Hoạt động', className: 'text-green-600' },
-  [UserStatus.BLOCKED]: { text: 'Đã khóa', className: 'text-red-600' },
-};
-
-const DEFAULT_USER_STATUS_META = { text: 'Chờ xác thực', className: 'text-yellow-600' };
-
 export function UserDetailModal({ user, onClose, onBan, onUnban }: UserDetailModalProps) {
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [recentDeposits, setRecentDeposits] = useState<Transaction[]>([]);
-  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
-  const [activityError, setActivityError] = useState<string | null>(null);
-  const [pendingModerationAction, setPendingModerationAction] = useState<'ban' | 'unban' | null>(null);
+  const recentOrders = [
+    { id: '#ORD12345', game: 'Liên Minh', amount: 2500000, date: '03/02/2024', status: 'completed' },
+    { id: '#ORD12344', game: 'PUBG Mobile', amount: 1800000, date: '02/02/2024', status: 'completed' },
+    { id: '#ORD12343', game: 'Genshin Impact', amount: 3200000, date: '01/02/2024', status: 'completed' },
+  ];
 
-  const statusMeta = USER_STATUS_META[user.status] || DEFAULT_USER_STATUS_META;
-
-  const fetchUserActivity = useCallback(async () => {
-    setIsLoadingActivity(true);
-    setActivityError(null);
-
-    try {
-      const [ordersResponse, depositsResponse] = await Promise.all([
-        orderService.getList({ page: 1, limit: 5, userId: user.id }),
-        transactionService.getList({
-          page: 1,
-          limit: 5,
-          userId: user.id,
-          method: TransactionMethod.TOP_UP,
-        }),
-      ]);
-
-      setRecentOrders(
-        [...ordersResponse.data].sort(
-          (first, second) =>
-            new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
-        ),
-      );
-
-      setRecentDeposits(
-        [...depositsResponse.data].sort(
-          (first, second) =>
-            new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
-        ),
-      );
-    } catch (error) {
-      setActivityError(ErrorHandler.getErrorMessage(error));
-      setRecentOrders([]);
-      setRecentDeposits([]);
-    } finally {
-      setIsLoadingActivity(false);
-    }
-  }, [user.id]);
-
-  useEffect(() => {
-    void fetchUserActivity();
-  }, [fetchUserActivity]);
-
-  const totalSpent = useMemo(() => {
-    if (recentOrders.length === 0) {
-      return user.totalSpent || 0;
-    }
-
-    return recentOrders
-      .filter((order) => order.status === OrderStatus.PAID || order.status === OrderStatus.COMPLETED)
-      .reduce((sum, order) => sum + order.price, 0);
-  }, [recentOrders, user.totalSpent]);
-
-  const totalOrders = recentOrders.length > 0 ? recentOrders.length : user.orders || 0;
-  const joinedDate = user.joinDate || new Date(user.createdAt || '').toLocaleDateString();
-  const isProtectedAdmin = user.role === UserRole.ADMIN;
-  const canBan = !isProtectedAdmin && user.status === UserStatus.ACTIVE;
-  const canUnban = !isProtectedAdmin && user.status === UserStatus.BLOCKED;
-
-  const handleBanClick = () => {
-    if (onBan) {
-      setPendingModerationAction('ban');
-    }
-  };
-
-  const handleUnbanClick = () => {
-    if (onUnban) {
-      setPendingModerationAction('unban');
-    }
-  };
-
-  const handleCloseModerationConfirm = () => {
-    setPendingModerationAction(null);
-  };
-
-  const handleConfirmModeration = () => {
-    if (pendingModerationAction === 'ban') {
-      onBan?.();
-    }
-
-    if (pendingModerationAction === 'unban') {
-      onUnban?.();
-    }
-
-    setPendingModerationAction(null);
-  };
-
-  const moderationConfirmTitle = pendingModerationAction === 'ban' ? 'Xác nhận khóa tài khoản' : 'Xác nhận mở khóa tài khoản';
-  const moderationConfirmMessage = pendingModerationAction === 'ban'
-    ? `Bạn có chắc muốn khóa tài khoản ${user.username}?`
-    : `Bạn có chắc muốn mở khóa tài khoản ${user.username}?`;
-  const moderationConfirmButtonClass = pendingModerationAction === 'ban'
-    ? 'bg-red-600 hover:bg-red-700 text-white'
-    : 'bg-green-600 hover:bg-green-700 text-white';
-  const moderationConfirmButtonText = pendingModerationAction === 'ban' ? 'Khóa tài khoản' : 'Mở khóa tài khoản';
+  const recentDeposits = [
+    { id: '#DEP12345', amount: 500000, method: 'MoMo', date: '03/02/2024', status: 'completed' },
+    { id: '#DEP12344', amount: 1000000, method: 'Chuyển khoản', date: '02/02/2024', status: 'completed' },
+  ];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -177,13 +52,17 @@ export function UserDetailModal({ user, onClose, onBan, onUnban }: UserDetailMod
                   <div>
                     <p className="font-semibold text-gray-800 text-lg flex items-center gap-2">
                       {user.username}
-                      {user.role === UserRole.ADMIN && <Shield className="w-5 h-5 text-purple-500" />}
                       {user.verified && <CheckCircle className="w-5 h-5 text-green-500" />}
                     </p>
-                    <p className={`text-sm ${statusMeta.className}`}>
-                      {statusMeta.text}
+                    <p className={`text-sm ${
+                      user.status === UserStatus.ACTIVE ? 'text-green-600' :
+                      user.status === UserStatus.BLOCKED ? 'text-red-600' :
+                      'text-yellow-600'
+                    }`}>
+                      {user.status === UserStatus.ACTIVE ? 'Hoạt động' :
+                       user.status === UserStatus.BLOCKED ? 'Đã khóa' :
+                       'Chờ xác thực'}
                     </p>
-                    <p className="text-xs text-gray-500">Role: {user.role === UserRole.ADMIN ? 'Admin' : 'User'}</p>
                   </div>
                 </div>
 
@@ -195,7 +74,7 @@ export function UserDetailModal({ user, onClose, onBan, onUnban }: UserDetailMod
 
                   <div className="flex items-center gap-2 text-gray-600">
                     <Calendar className="w-4 h-4" />
-                    <span className="text-sm">Tham gia: {joinedDate}</span>
+                    <span className="text-sm">Tham gia: {user.joinDate || new Date(user.createdAt || '').toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
@@ -223,7 +102,7 @@ export function UserDetailModal({ user, onClose, onBan, onUnban }: UserDetailMod
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Tổng chi tiêu</p>
-                      <p className="font-bold text-blue-600">{totalSpent.toLocaleString('vi-VN')}đ</p>
+                      <p className="font-bold text-blue-600">{(user.totalSpent || 0).toLocaleString('vi-VN')}đ</p>
                     </div>
                   </div>
                 </div>
@@ -235,7 +114,7 @@ export function UserDetailModal({ user, onClose, onBan, onUnban }: UserDetailMod
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Số đơn hàng</p>
-                      <p className="font-bold text-[#FF2E63]">{totalOrders}</p>
+                      <p className="font-bold text-[#FF2E63]">{user.orders || 0}</p>
                     </div>
                   </div>
                 </div>
@@ -243,94 +122,63 @@ export function UserDetailModal({ user, onClose, onBan, onUnban }: UserDetailMod
             </div>
           </div>
 
-          {activityError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {activityError}
-            </div>
-          )}
-
           {/* Recent Orders */}
           <div className="bg-gray-50 rounded-xl p-6">
             <h3 className="font-semibold text-gray-800 mb-4">Đơn hàng gần đây</h3>
-            {isLoadingActivity ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="h-16 rounded-lg bg-white animate-pulse border border-gray-100" />
-                ))}
-              </div>
-            ) : recentOrders.length === 0 ? (
-              <p className="text-sm text-gray-500">Chưa có đơn hàng gần đây.</p>
-            ) : (
-              <div className="space-y-3">
-                {recentOrders.map((order) => (
-                  <div key={order.id} className="bg-white p-4 rounded-lg flex items-center justify-between border border-gray-100">
-                    <div>
-                      <p className="font-medium text-[#FF2E63]">#{order.id.slice(0, 8)}</p>
-                      <p className="text-sm text-gray-600">{ORDER_STATUS_TEXT[order.status] || ORDER_STATUS_TEXT[OrderStatus.PENDING]}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-800">{order.price.toLocaleString('vi-VN')}đ</p>
-                      <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</p>
-                    </div>
+            <div className="space-y-3">
+              {recentOrders.map((order) => (
+                <div key={order.id} className="bg-white p-4 rounded-lg flex items-center justify-between border border-gray-100">
+                  <div>
+                    <p className="font-medium text-[#FF2E63]">{order.id}</p>
+                    <p className="text-sm text-gray-600">{order.game}</p>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-800">{order.amount.toLocaleString('vi-VN')}đ</p>
+                    <p className="text-xs text-gray-500">{order.date}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Recent Deposits */}
           <div className="bg-gray-50 rounded-xl p-6">
             <h3 className="font-semibold text-gray-800 mb-4">Nạp tiền gần đây</h3>
-            {isLoadingActivity ? (
-              <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, index) => (
-                  <div key={index} className="h-16 rounded-lg bg-white animate-pulse border border-gray-100" />
-                ))}
-              </div>
-            ) : recentDeposits.length === 0 ? (
-              <p className="text-sm text-gray-500">Chưa có giao dịch nạp tiền.</p>
-            ) : (
-              <div className="space-y-3">
-                {recentDeposits.map((deposit) => (
-                  <div key={deposit.id} className="bg-white p-4 rounded-lg flex items-center justify-between border border-gray-100">
-                    <div>
-                      <p className="font-medium text-[#08D9D6]">#{deposit.id.slice(0, 8)}</p>
-                      <p className="text-sm text-gray-600">{TRANSACTION_STATUS_TEXT[deposit.status] || TRANSACTION_STATUS_TEXT[TransactionStatus.PENDING]}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-600">{deposit.price.toLocaleString('vi-VN')}đ</p>
-                      <p className="text-xs text-gray-500">{new Date(deposit.createdAt).toLocaleDateString('vi-VN')}</p>
-                    </div>
+            <div className="space-y-3">
+              {recentDeposits.map((deposit) => (
+                <div key={deposit.id} className="bg-white p-4 rounded-lg flex items-center justify-between border border-gray-100">
+                  <div>
+                    <p className="font-medium text-[#08D9D6]">{deposit.id}</p>
+                    <p className="text-sm text-gray-600">{deposit.method}</p>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="text-right">
+                    <p className="font-semibold text-green-600">{deposit.amount.toLocaleString('vi-VN')}đ</p>
+                    <p className="text-xs text-gray-500">{deposit.date}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Actions */}
           <div className="flex gap-3">
-            {canBan ? (
+            {user.status === UserStatus.ACTIVE ? (
               <button
-                onClick={handleBanClick}
+                onClick={onBan}
                 className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition"
               >
                 <Ban className="w-5 h-5" />
                 Khóa tài khoản
               </button>
-            ) : canUnban ? (
+            ) : user.status === UserStatus.BLOCKED ? (
               <button
-                onClick={handleUnbanClick}
+                onClick={onUnban}
                 className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition"
               >
                 <CheckCircle className="w-5 h-5" />
                 Mở khóa tài khoản
               </button>
             ) : null}
-            {isProtectedAdmin && (
-              <div className="flex-1 bg-purple-50 text-purple-700 py-3 rounded-lg font-semibold text-center border border-purple-100">
-                Tài khoản ADMIN được bảo vệ
-              </div>
-            )}
             <button
               onClick={onClose}
               className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
@@ -340,38 +188,6 @@ export function UserDetailModal({ user, onClose, onBan, onUnban }: UserDetailMod
           </div>
         </div>
       </div>
-
-      {pendingModerationAction && (
-        <div className="fixed inset-0 bg-black/55 flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
-            <div className="bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white p-5 rounded-t-2xl flex items-center gap-3">
-              <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-lg font-bold">{moderationConfirmTitle}</h3>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-700">{moderationConfirmMessage}</p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleConfirmModeration}
-                  className={`flex-1 py-2.5 rounded-lg font-semibold transition ${moderationConfirmButtonClass}`}
-                >
-                  {moderationConfirmButtonText}
-                </button>
-                <button
-                  onClick={handleCloseModerationConfirm}
-                  className="flex-1 py-2.5 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
-                >
-                  Hủy
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

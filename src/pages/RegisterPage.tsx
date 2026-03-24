@@ -45,7 +45,7 @@ export function RegisterPage() {
 
     setIsLoading(true);
     try {
-      await register(formData.fullName, formData.email, formData.password);
+      await register(formData.fullName, formData.email, formData.password, "");
       navigate("/");
     } catch (error: unknown) {
       setErrorMessage(ErrorHandler.getErrorMessage(error));

@@ -1,6 +1,6 @@
 import { X, Save } from 'lucide-react';
 import { useState } from 'react';
-import { BalanceAdjustDirection, User, UserRole, UserStatus } from '../../services/types';
+import { BalanceAdjustDirection, User, UserStatus } from '../../services/types';
 
 export interface BalanceAdjustmentPayload {
   amount: number;
@@ -14,104 +14,56 @@ interface EditUserModalProps {
   onSave: (userData: Partial<User>, balanceAdjustment?: BalanceAdjustmentPayload) => void;
 }
 
-const DEFAULT_BALANCE_ADJUSTMENT = {
-  amount: '',
-  direction: BalanceAdjustDirection.CREDIT,
-  reason: ''
-};
-
-const validateEditUserForm = (
-  isEdit: boolean,
-  formData: Partial<User>,
-  balanceAdjustment: typeof DEFAULT_BALANCE_ADJUSTMENT,
-) => {
-  if (!isEdit && !formData.password?.trim()) {
-    return 'Vui lòng nhập mật khẩu khi tạo người dùng mới.';
-  }
-
-  const parsedAmount = Number.parseInt(balanceAdjustment.amount, 10);
-  const hasAdjustment = isEdit && Number.isFinite(parsedAmount) && parsedAmount > 0;
-
-  if (hasAdjustment && !balanceAdjustment.reason.trim()) {
-    return 'Vui lòng nhập lý do điều chỉnh số dư.';
-  }
-
-  return '';
-};
-
-const buildBalanceAdjustmentPayload = (
-  isEdit: boolean,
-  balanceAdjustment: typeof DEFAULT_BALANCE_ADJUSTMENT,
-): BalanceAdjustmentPayload | undefined => {
-  const parsedAmount = Number.parseInt(balanceAdjustment.amount, 10);
-  const hasAdjustment = isEdit && Number.isFinite(parsedAmount) && parsedAmount > 0;
-
-  if (!hasAdjustment) {
-    return undefined;
-  }
-
-  return {
-    amount: parsedAmount,
-    direction: balanceAdjustment.direction,
-    reason: balanceAdjustment.reason.trim(),
-  };
-};
-
 export function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
-  const isEdit = !!user;
-
   const [formData, setFormData] = useState<Partial<User>>({
     username: user?.username || '',
     email: user?.email || '',
-    password: '',
-    role: user?.role || UserRole.CUSTOMER,
+    phone: user?.phone || '',
     status: user?.status || UserStatus.ACTIVE,
     verified: user?.verified || false
   });
-  const [balanceAdjustment, setBalanceAdjustment] = useState(DEFAULT_BALANCE_ADJUSTMENT);
+  const [balanceAdjustment, setBalanceAdjustment] = useState({
+    amount: '',
+    direction: BalanceAdjustDirection.CREDIT,
+    reason: ''
+  });
   const [submitError, setSubmitError] = useState('');
 
-  const handleFormFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) : value
     }));
   };
 
-  const handleBalanceAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setBalanceAdjustment((prev) => ({ ...prev, amount: value }));
-  };
-
-  const handleBalanceDirectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { value } = e.target;
-    setBalanceAdjustment((prev) => ({
-      ...prev,
-      direction: value as BalanceAdjustDirection,
-    }));
-  };
-
-  const handleBalanceReasonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setBalanceAdjustment((prev) => ({ ...prev, reason: value }));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError('');
 
-    const validationError = validateEditUserForm(isEdit, formData, balanceAdjustment);
-    if (validationError) {
-      setSubmitError(validationError);
+    const amount = parseInt(balanceAdjustment.amount, 10);
+    const hasAdjustment = isEdit && Number.isFinite(amount) && amount > 0;
+
+    if (hasAdjustment && !balanceAdjustment.reason.trim()) {
+      setSubmitError('Vui lòng nhập lý do điều chỉnh số dư.');
       return;
     }
 
-    const adjustmentPayload = buildBalanceAdjustmentPayload(isEdit, balanceAdjustment);
-    onSave(formData, adjustmentPayload);
+    onSave(
+      formData,
+      hasAdjustment
+        ? {
+            amount,
+            direction: balanceAdjustment.direction,
+            reason: balanceAdjustment.reason.trim(),
+          }
+        : undefined,
+    );
   };
+
+  const isEdit = !!user;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
@@ -142,7 +94,7 @@ export function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
                 type="text"
                 name="username"
                 value={formData.username}
-                onChange={handleFormFieldChange}
+                onChange={handleChange}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
@@ -156,28 +108,11 @@ export function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
                 type="email"
                 name="email"
                 value={formData.email}
-                onChange={handleFormFieldChange}
+                onChange={handleChange}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mật khẩu {!isEdit && <span className="text-red-500">*</span>}
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password || ''}
-                onChange={handleFormFieldChange}
-                required={!isEdit}
-                placeholder={isEdit ? 'Nhập mật khẩu mới' : ''}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
-              />
-            </div>
-
-
           </div>
 
           {/* Account Settings */}
@@ -191,26 +126,11 @@ export function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
               <select
                 name="status"
                 value={formData.status}
-                onChange={handleFormFieldChange}
+                onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               >
                 <option value={UserStatus.ACTIVE}>Hoạt động</option>
                 <option value={UserStatus.BLOCKED}>Đã khóa</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Role
-              </label>
-              <select
-                name="role"
-                value={formData.role || UserRole.CUSTOMER}
-                onChange={handleFormFieldChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
-              >
-                <option value={UserRole.ADMIN}>Admin</option>
-                <option value={UserRole.CUSTOMER}>User</option>
               </select>
             </div>
 
@@ -219,7 +139,7 @@ export function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
                 type="checkbox"
                 name="verified"
                 checked={formData.verified}
-                onChange={handleFormFieldChange}
+                onChange={handleChange}
                 className="w-4 h-4 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
               />
               <label className="text-sm text-gray-700">Đã xác thực email</label>
@@ -243,7 +163,7 @@ export function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
                     min="1"
                     step="1"
                     value={balanceAdjustment.amount}
-                    onChange={handleBalanceAmountChange}
+                    onChange={(e) => setBalanceAdjustment((prev) => ({ ...prev, amount: e.target.value }))}
                     placeholder="Ví dụ: 100000"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
                   />
@@ -255,7 +175,12 @@ export function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
                   </label>
                   <select
                     value={balanceAdjustment.direction}
-                    onChange={handleBalanceDirectionChange}
+                    onChange={(e) =>
+                      setBalanceAdjustment((prev) => ({
+                        ...prev,
+                        direction: e.target.value as BalanceAdjustDirection,
+                      }))
+                    }
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
                   >
                     <option value={BalanceAdjustDirection.CREDIT}>Cộng tiền (CREDIT)</option>
@@ -269,7 +194,7 @@ export function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
                 <input
                   type="text"
                   value={balanceAdjustment.reason}
-                  onChange={handleBalanceReasonChange}
+                  onChange={(e) => setBalanceAdjustment((prev) => ({ ...prev, reason: e.target.value }))}
                   placeholder="Ví dụ: Điều chỉnh theo yêu cầu hỗ trợ"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
                 />

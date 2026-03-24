@@ -21,12 +21,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (
     username: string, 
     email: string, 
-    password: string
+    password: string, 
+    phone: string
   ): Promise<boolean> => {
     const response = await authService.register({
       username,
       email,
       password,
+      phone,
     });
 
     setUser(response.user);

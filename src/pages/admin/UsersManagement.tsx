@@ -4,7 +4,7 @@ import { UserDetailModal } from '../../components/admin/UserDetailModal';
 import { BalanceAdjustmentPayload, EditUserModal } from '../../components/admin/EditUserModal';
 import { DeleteConfirmModal } from '../../components/admin/DeleteConfirmModal';
 import { userService } from '../../services/user.service';
-import { User, UserRole, UserStatus, CreateUserRequest, UpdateUserRequest } from '../../services/types';
+import { User, UserStatus, CreateUserRequest, UpdateUserRequest } from '../../services/types';
 import ErrorHandler from '../../utils/errorHandler';
 import { walletService } from '../../services/wallet.service';
 
@@ -17,7 +17,6 @@ export function UsersManagement() {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Modals state
   const [showDetailModal, setShowDetailModal] = useState<User | null>(null);
@@ -83,10 +82,6 @@ export function UsersManagement() {
     }
   };
 
-  const getRoleText = (role: UserRole) => {
-    return role === UserRole.ADMIN ? 'Admin' : 'User';
-  };
-
   const runUserAction = async (
     action: () => Promise<unknown>,
     successMessage: string,
@@ -95,36 +90,24 @@ export function UsersManagement() {
     try {
       await action();
       closeModal?.();
-      setSuccessMessage(successMessage);
-      setErrorMessage(null);
-      await fetchUsers();
+      alert(successMessage);
+      fetchUsers();
     } catch (error) {
-      setSuccessMessage(null);
-      setErrorMessage(ErrorHandler.getErrorMessage(error));
+      alert(ErrorHandler.getErrorMessage(error));
     }
   };
 
   const handleSaveUser = async (userData: Partial<User>, balanceAdjustment?: BalanceAdjustmentPayload) => {
     if (showEditModal && showEditModal.id) {
-      const updatePayload: UpdateUserRequest = {};
-      const adminUpdatePayload: {  role?: UserRole; status?: UserStatus } = {};
-
-      if (userData.username !== undefined) updatePayload.username = userData.username;
-      if (userData.email !== undefined) updatePayload.email = userData.email;
-      if (userData.password?.trim()) updatePayload.password = userData.password.trim();
-
-     
-      if (userData.role !== undefined) adminUpdatePayload.role = userData.role;
-      if (userData.status !== undefined) adminUpdatePayload.status = userData.status;
+      const updatePayload: UpdateUserRequest = {
+        username: userData.username,
+        email: userData.email,
+        phone: userData.phone,
+        status: userData.status,
+      };
 
       try {
-        if (Object.keys(updatePayload).length > 0) {
-          await userService.update(showEditModal.id!, updatePayload);
-        }
-
-        if (Object.keys(adminUpdatePayload).length > 0) {
-          await userService.adminUpdate(showEditModal.id!, adminUpdatePayload);
-        }
+        await userService.update(showEditModal.id!, updatePayload);
 
         if (balanceAdjustment && balanceAdjustment.amount > 0) {
           await walletService.adminAdjust({
@@ -136,48 +119,23 @@ export function UsersManagement() {
         }
 
         setShowEditModal(null);
-        setSuccessMessage(
+        alert(
           balanceAdjustment
             ? 'Đã cập nhật người dùng và điều chỉnh số dư ví!'
             : 'Đã cập nhật người dùng!',
         );
-        setErrorMessage(null);
-        await fetchUsers();
+        fetchUsers();
       } catch (error) {
-        setSuccessMessage(null);
-        setErrorMessage(ErrorHandler.getErrorMessage(error));
+        alert(ErrorHandler.getErrorMessage(error));
       }
       return;
     }
 
-    if (!userData.password?.trim()) {
-      setSuccessMessage(null);
-      setErrorMessage('Mật khẩu là bắt buộc khi tạo người dùng mới.');
-      return;
-    }
-
-    const createPayload: CreateUserRequest = {
-      username: userData.username || '',
-      email: userData.email || '',
-      password: userData.password.trim(),
-    
-    };
-
-    try {
-      const createdUser = await userService.create(createPayload);
-
-      if (userData.role && userData.role !== UserRole.CUSTOMER) {
-        await userService.update(createdUser.id, { role: userData.role });
-      }
-
-      setShowEditModal(null);
-      setSuccessMessage('Đã thêm người dùng mới!');
-      setErrorMessage(null);
-      await fetchUsers();
-    } catch (error) {
-      setSuccessMessage(null);
-      setErrorMessage(ErrorHandler.getErrorMessage(error));
-    }
+    await runUserAction(
+      () => userService.create(userData as CreateUserRequest),
+      'Đã thêm người dùng mới!',
+      () => setShowEditModal(null),
+    );
   };
 
   const handleDeleteUser = async (user: User) => {
@@ -267,18 +225,6 @@ export function UsersManagement() {
         </div>
       )}
 
-      {successMessage && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-medium">{successMessage}</p>
-          <button
-            onClick={() => setSuccessMessage(null)}
-            className="shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white border border-green-200 hover:bg-green-100 transition text-sm font-medium"
-          >
-            Đóng
-          </button>
-        </div>
-      )}
-
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -317,8 +263,6 @@ export function UsersManagement() {
               <option value={UserStatus.ACTIVE}>Hoạt động</option>
               <option value={UserStatus.BLOCKED}>Đã khóa</option>
             </select>
-
-            
           </div>
         </div>
       </div>
@@ -339,7 +283,6 @@ export function UsersManagement() {
                   <th className="py-4 px-6 text-sm font-semibold text-gray-600">ID</th>
                   <th className="py-4 px-6 text-sm font-semibold text-gray-600">Người dùng</th>
                   <th className="py-4 px-6 text-sm font-semibold text-gray-600">Liên hệ</th>
-                  <th className="py-4 px-6 text-sm font-semibold text-gray-600">Role</th>
                   <th className="py-4 px-6 text-sm font-semibold text-gray-600">Số dư</th>
                   <th className="py-4 px-6 text-sm font-semibold text-gray-600">Trạng thái</th>
                   <th className="py-4 px-6 text-sm font-semibold text-gray-600">Ngày tham gia</th>
@@ -365,16 +308,11 @@ export function UsersManagement() {
                     <td className="py-4 px-6">
                       <p className="text-sm text-gray-600">{user.email}</p>
                     </td>
-                    <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {getRoleText(user.role)}
-                      </span>
-                    </td>
                     <td className="py-4 px-6 font-semibold text-green-600">
                       {(user.balance || 0).toLocaleString('vi-VN')}đ
                     </td>
                     <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(user.status)}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(user.status)}`}>
                         {getStatusText(user.status)}
                       </span>
                     </td>
@@ -410,7 +348,7 @@ export function UsersManagement() {
                 ))}
                 {users.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-gray-500">
+                    <td colSpan={7} className="text-center py-8 text-gray-500">
                       <div className="flex flex-col items-center gap-2">
                         <p className="font-medium">Không tìm thấy người dùng nào.</p>
                         {hasFilter && (
