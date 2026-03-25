@@ -1,10 +1,21 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
-import { Mail, Wallet, ShoppingBag, Edit, Shield, LogOut, ArrowRight, Eye, ArrowLeftRight } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import { OrderDetailModal } from '../components/user/OrderDetailModal';
+import { useEffect, useMemo, useState } from "react";
+import { axiosService } from "../services/axios";
+import { Link } from "react-router";
+import {
+  Mail,
+  Wallet,
+  ShoppingBag,
+  Edit,
+  Shield,
+  LogOut,
+  ArrowRight,
+  Eye,
+  ArrowLeftRight,
+} from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import { OrderDetailModal } from "../components/user/OrderDetailModal";
 
-interface Order {
+interface OrderItem {
   id: string;
   game: string;
   rank: string;
@@ -13,17 +24,107 @@ interface Order {
   status: string;
 }
 
+interface TransactionItem {
+  id: string;
+  type: string;
+  amount: number;
+  method: string;
+  date: string;
+  status: string;
+}
+
+interface TransferItem {
+  id: string;
+  recipient: string;
+  recipientName: string;
+  amount: number;
+  status: string;
+  date: string;
+  note: string;
+}
+
+const formatCurrency = (value?: number) =>
+  `${(value || 0).toLocaleString("vi-VN")}đ`;
+
+const formatDate = (value?: string | Date) => {
+  if (!value) return "--";
+  return new Date(value).toLocaleDateString("vi-VN");
+};
+
+const formatDateTime = (value?: string | Date) => {
+  if (!value) return "--";
+  return new Date(value).toLocaleString("vi-VN");
+};
+
+const getOrderStatusUi = (status?: string) => {
+  switch (status) {
+    case "COMPLETED":
+      return { label: "Hoàn thành", className: "bg-green-100 text-green-700" };
+    case "PAID":
+      return { label: "Đã thanh toán", className: "bg-blue-100 text-blue-700" };
+    case "PENDING":
+      return {
+        label: "Đang xử lý",
+        className: "bg-yellow-100 text-yellow-700",
+      };
+    case "CANCELLED":
+      return { label: "Đã hủy", className: "bg-red-100 text-red-700" };
+    default:
+      return {
+        label: status || "Không rõ",
+        className: "bg-gray-100 text-gray-700",
+      };
+  }
+};
+
+const getTransactionStatusUi = (status?: string) => {
+  switch (status) {
+    case "SUCCESS":
+      return { label: "Thành công", className: "bg-green-100 text-green-700" };
+    case "PENDING":
+      return {
+        label: "Đang xử lý",
+        className: "bg-yellow-100 text-yellow-700",
+      };
+    case "FAILED":
+      return { label: "Thất bại", className: "bg-red-100 text-red-700" };
+    case "REFUNDED":
+      return { label: "Hoàn tiền", className: "bg-purple-100 text-purple-700" };
+    default:
+      return {
+        label: status || "Không rõ",
+        className: "bg-gray-100 text-gray-700",
+      };
+  }
+};
+
 export function UserProfilePage() {
   const { user, logout, isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [showOrderDetail, setShowOrderDetail] = useState<Order | null>(null);
+
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showOrderDetail, setShowOrderDetail] = useState<OrderItem | null>(
+    null,
+  );
+
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const [balance, setBalance] = useState<number>(user?.balance || 0);
+  const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [transfers, setTransfers] = useState<TransferItem[]>([]);
+  const [phone, setPhone] = useState((user as any)?.phone || "");
 
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Vui lòng đăng nhập để xem trang này</p>
-          <Link to="/login" className="text-[#0D4D8B] hover:underline mt-2 inline-block">
+          <Link
+            to="/login"
+            className="text-[#0D4D8B] hover:underline mt-2 inline-block"
+          >
             Đăng nhập ngay
           </Link>
         </div>
@@ -31,55 +132,124 @@ export function UserProfilePage() {
     );
   }
 
-  const recentOrders = [
-    { 
-      id: '#ORD12345', 
-      game: 'Liên Minh Huyền Thoại', 
-      rank: 'Kim Cương III',
-      amount: 2500000, 
-      date: '03/02/2024', 
-      status: 'completed' 
-    },
-    { 
-      id: '#ORD12344', 
-      game: 'PUBG Mobile', 
-      rank: 'Chinh Phục',
-      amount: 1800000, 
-      date: '02/02/2024', 
-      status: 'completed' 
-    },
-    { 
-      id: '#ORD12343', 
-      game: 'Genshin Impact', 
-      rank: 'AR 58',
-      amount: 3200000, 
-      date: '01/02/2024', 
-      status: 'completed' 
-    },
-  ];
+  useEffect(() => {
+    const loadProfileData = async () => {
+      setLoading(true);
+      setPageError("");
 
-  const recentDeposits = [
-    { id: '#DEP12345', amount: 500000, method: 'MoMo', date: '03/02/2024', status: 'completed' },
-    { id: '#DEP12344', amount: 1000000, method: 'Chuyển khoản', date: '02/02/2024', status: 'completed' },
-    { id: '#DEP12343', amount: 200000, method: 'Thẻ ATM', date: '01/02/2024', status: 'completed' },
-  ];
+      try {
+        const [balanceRes, purchasesRes, historyRes, transferRes] =
+          await Promise.all([
+            axiosService.get("/wallets/me/balance"),
+            axiosService.get("/account-trades/me/purchases", {
+              params: { page: 1, limit: 20 },
+            }),
+            axiosService.get("/wallets/me/history", {
+              params: { page: 1, limit: 20 },
+            }),
+            axiosService.get("/wallets/me/history", {
+              params: { page: 1, limit: 20, type: "TRANSFER" as const },
+            }),
+          ]);
 
-  const recentTransfers = [
-    { id: '#TRF001', recipient: 'user2@gameaccount.vn', recipientName: 'Nguyễn Văn B', amount: 500000, status: 'success', date: '03/02/2024 14:30', note: 'Chuyển tiền mua tài khoản' },
-    { id: '#TRF002', recipient: 'user3@gameaccount.vn', recipientName: 'Trần Thị C', amount: 1200000, status: 'success', date: '02/02/2024 09:15', note: 'Hoàn tiền' },
-    { id: '#TRF003', recipient: 'user4@gameaccount.vn', recipientName: 'Lê Văn D', amount: 300000, status: 'failed', date: '01/02/2024 16:45', note: 'Thanh toán' },
-  ];
+        const balanceData = balanceRes.data as any;
+        setBalance(Number(balanceData?.balance || 0));
+
+        const purchasesData = (purchasesRes.data as any)?.data || [];
+        const mappedOrders: OrderItem[] = purchasesData.map((item: any) => ({
+          id: item.id,
+          game: item.gameAccount?.category?.name || "Tài khoản game",
+          rank:
+            item.gameAccount?.rank ||
+            (item.gameAccount?.level
+              ? `Level ${item.gameAccount.level}`
+              : "Chưa cập nhật"),
+          amount: Number(item.price || 0),
+          date: item.createdAt,
+          status: item.status,
+        }));
+        setOrders(mappedOrders);
+
+        const historyData = (historyRes.data as any)?.data || [];
+        const mappedTransactions: TransactionItem[] = historyData.map(
+          (item: any) => ({
+            id: item.id,
+            type: item.method,
+            amount: Number(item.price || 0),
+            method: item.method,
+            date: item.createdAt,
+            status: item.status,
+          }),
+        );
+        setTransactions(mappedTransactions);
+
+        const transferData = (transferRes.data as any)?.data || [];
+        const mappedTransfers: TransferItem[] = transferData.map(
+          (item: any) => ({
+            id: item.id,
+            recipient: item.recipientUserId || "Không rõ người nhận",
+            recipientName: item.recipientUserId || "Người dùng khác",
+            amount: Number(item.price || 0),
+            status: item.status,
+            date: item.createdAt,
+            note: "Chuyển tiền",
+          }),
+        );
+        setTransfers(mappedTransfers);
+      } catch (error) {
+        console.error(error);
+        setPageError("Không thể tải dữ liệu trang cá nhân");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, []);
+
+  const totalSpent = useMemo(() => {
+    return orders
+      .filter((item) => ["PAID", "COMPLETED"].includes(item.status))
+      .reduce((sum, item) => sum + item.amount, 0);
+  }, [orders]);
 
   const stats = [
-    { label: 'Số dư hiện tại', value: `${user.balance.toLocaleString('vi-VN')}đ`, icon: Wallet, color: 'bg-green-500' },
-    { label: 'Tổng đơn hàng', value: '12', icon: ShoppingBag, color: 'bg-blue-500' },
-    { label: 'Tổng chi tiêu', value: '15,000,000đ', icon: Wallet, color: 'bg-blue-500' },
+    {
+      label: "Số dư hiện tại",
+      value: formatCurrency(balance),
+      icon: Wallet,
+      color: "bg-green-500",
+    },
+    {
+      label: "Tổng đơn hàng",
+      value: String(orders.length),
+      icon: ShoppingBag,
+      color: "bg-blue-500",
+    },
+    {
+      label: "Tổng chi tiêu",
+      value: formatCurrency(totalSpent),
+      icon: Wallet,
+      color: "bg-blue-500",
+    },
   ];
+
+  const handleUpdateProfile = async () => {
+    try {
+      setSavingProfile(true);
+      await axiosService.patch(`/users/${user.id}`, { phone });
+      alert("Cập nhật thông tin thành công");
+    } catch (error) {
+      console.error(error);
+      alert("Cập nhật thông tin thất bại");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
-        {/* Header */}
         <div className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white rounded-2xl p-8 mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-6">
@@ -104,6 +274,7 @@ export function UserProfilePage() {
                 <p className="text-blue-100 text-sm mt-1">ID: {user.id}</p>
               </div>
             </div>
+
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 to="/deposit"
@@ -126,133 +297,138 @@ export function UserProfilePage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {pageError && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            {pageError}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {stats.map((stat, index) => (
             <div key={index} className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`${stat.color} w-12 h-12 rounded-lg flex items-center justify-center`}>
+                <div
+                  className={`${stat.color} w-12 h-12 rounded-lg flex items-center justify-center`}
+                >
                   <stat.icon className="w-6 h-6 text-white" />
                 </div>
               </div>
               <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
-              <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+              <p className="text-2xl font-bold text-gray-800">
+                {loading ? "Đang tải..." : stat.value}
+              </p>
             </div>
           ))}
         </div>
 
-        {/* Tabs */}
         <div className="bg-white rounded-xl shadow-lg mb-8">
           <div className="border-b border-gray-200">
             <nav className="flex overflow-x-auto">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`px-6 py-4 font-semibold transition whitespace-nowrap ${
-                  activeTab === 'overview'
-                    ? 'border-b-2 border-[#0D4D8B] text-[#0D4D8B]'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Tổng quan
-              </button>
-              <button
-                onClick={() => setActiveTab('orders')}
-                className={`px-6 py-4 font-semibold transition whitespace-nowrap ${
-                  activeTab === 'orders'
-                    ? 'border-b-2 border-[#0D4D8B] text-[#0D4D8B]'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Đơn hàng
-              </button>
-              <button
-                onClick={() => setActiveTab('transactions')}
-                className={`px-6 py-4 font-semibold transition whitespace-nowrap ${
-                  activeTab === 'transactions'
-                    ? 'border-b-2 border-[#0D4D8B] text-[#0D4D8B]'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Giao dịch
-              </button>
-              <button
-                onClick={() => setActiveTab('transfers')}
-                className={`px-6 py-4 font-semibold transition whitespace-nowrap ${
-                  activeTab === 'transfers'
-                    ? 'border-b-2 border-[#0D4D8B] text-[#0D4D8B]'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Chuyển tiền
-              </button>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`px-6 py-4 font-semibold transition whitespace-nowrap ${
-                  activeTab === 'settings'
-                    ? 'border-b-2 border-[#0D4D8B] text-[#0D4D8B]'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Cài đặt
-              </button>
+              {[
+                ["overview", "Tổng quan"],
+                ["orders", "Đơn hàng"],
+                ["transactions", "Giao dịch"],
+                ["transfers", "Chuyển tiền"],
+                ["settings", "Cài đặt"],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`px-6 py-4 font-semibold transition whitespace-nowrap ${
+                    activeTab === key
+                      ? "border-b-2 border-[#0D4D8B] text-[#0D4D8B]"
+                      : "text-gray-600 hover:text-gray-800"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </nav>
           </div>
 
           <div className="p-6">
-            {/* Overview Tab */}
-            {activeTab === 'overview' && (
+            {activeTab === "overview" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Thông tin cá nhân</h2>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">
+                    Thông tin cá nhân
+                  </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600 mb-1">Tên đăng nhập</p>
-                      <p className="font-semibold text-gray-800">{user.username}</p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Tên đăng nhập
+                      </p>
+                      <p className="font-semibold text-gray-800">
+                        {user.username}
+                      </p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600 mb-1">Email</p>
-                      <p className="font-semibold text-gray-800">{user.email}</p>
+                      <p className="font-semibold text-gray-800">
+                        {user.email}
+                      </p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600 mb-1">Vai trò</p>
                       <p className="font-semibold text-gray-800">
-                        {isAdmin ? '👑 Quản trị viên' : '👤 Người dùng'}
+                        {isAdmin ? "👑 Quản trị viên" : "👤 Người dùng"}
                       </p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-600 mb-1">Ngày tham gia</p>
-                      <p className="font-semibold text-gray-800">15/01/2024</p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Ngày tham gia
+                      </p>
+                      <p className="font-semibold text-gray-800">
+                        {formatDate((user as any).createdAt)}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Đơn hàng gần đây</h2>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">
+                    Đơn hàng gần đây
+                  </h2>
                   <div className="space-y-3">
-                    {recentOrders.map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                        <div>
-                          <p className="font-medium text-[#0D4D8B]">{order.id}</p>
-                          <p className="text-sm text-gray-600">{order.game}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="font-semibold text-gray-800">{order.amount.toLocaleString('vi-VN')}đ</p>
-                            <p className="text-xs text-gray-500">{order.date}</p>
+                    {orders.slice(0, 5).length === 0 ? (
+                      <div className="text-gray-500">Chưa có đơn hàng nào</div>
+                    ) : (
+                      orders.slice(0, 5).map((order) => (
+                        <div
+                          key={order.id}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                        >
+                          <div>
+                            <p className="font-medium text-[#0D4D8B]">
+                              {order.id}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {order.game}
+                            </p>
                           </div>
-                          <button
-                            onClick={() => setShowOrderDetail(order)}
-                            className="p-2 hover:bg-blue-100 rounded-lg transition"
-                            title="Xem chi tiết"
-                          >
-                            <Eye className="w-5 h-5 text-[#0D4D8B]" />
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="font-semibold text-gray-800">
+                                {formatCurrency(order.amount)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(order.date)}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => setShowOrderDetail(order)}
+                              className="p-2 hover:bg-blue-100 rounded-lg transition"
+                              title="Xem chi tiết"
+                            >
+                              <Eye className="w-5 h-5 text-[#0D4D8B]" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
-                  <button 
-                    onClick={() => setActiveTab('orders')}
+                  <button
+                    onClick={() => setActiveTab("orders")}
                     className="text-[#0D4D8B] hover:underline text-sm mt-3 inline-block"
                   >
                     Xem tất cả đơn hàng →
@@ -261,97 +437,188 @@ export function UserProfilePage() {
               </div>
             )}
 
-            {/* Orders Tab */}
-            {activeTab === 'orders' && (
+            {activeTab === "orders" && (
               <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Lịch sử đơn hàng</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Lịch sử đơn hàng
+                </h2>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Mã đơn</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Game</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Số tiền</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Ngày mua</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Trạng thái</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Thao tác</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Mã đơn
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Game
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Số tiền
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Ngày mua
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Trạng thái
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Thao tác
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recentOrders.map((order) => (
-                        <tr key={order.id} className="border-t border-gray-200 hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium text-[#0D4D8B]">{order.id}</td>
-                          <td className="py-3 px-4">{order.game}</td>
-                          <td className="py-3 px-4 font-semibold">{order.amount.toLocaleString('vi-VN')}đ</td>
-                          <td className="py-3 px-4 text-sm text-gray-600">{order.date}</td>
-                          <td className="py-3 px-4">
-                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                              Hoàn thành
-                            </span>
+                      {orders.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="py-6 px-4 text-center text-gray-500"
+                          >
+                            Chưa có đơn hàng nào
                           </td>
-                          <td className="py-3 px-4">
-                            <button
-                              onClick={() => setShowOrderDetail(order)}
-                              className="flex items-center gap-2 px-4 py-2 bg-[#0D4D8B] text-white rounded-lg hover:bg-[#0B4275] transition text-sm font-semibold"
+                        </tr>
+                      ) : (
+                        orders.map((order) => {
+                          const statusUi = getOrderStatusUi(order.status);
+                          return (
+                            <tr
+                              key={order.id}
+                              className="border-t border-gray-200 hover:bg-gray-50"
                             >
-                              <Eye className="w-4 h-4" />
-                              Xem chi tiết
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              <td className="py-3 px-4 font-medium text-[#0D4D8B]">
+                                {order.id}
+                              </td>
+                              <td className="py-3 px-4">{order.game}</td>
+                              <td className="py-3 px-4 font-semibold">
+                                {formatCurrency(order.amount)}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-gray-600">
+                                {formatDate(order.date)}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-semibold ${statusUi.className}`}
+                                >
+                                  {statusUi.label}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <button
+                                  onClick={() => setShowOrderDetail(order)}
+                                  className="flex items-center gap-2 px-4 py-2 bg-[#0D4D8B] text-white rounded-lg hover:bg-[#0B4275] transition text-sm font-semibold"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  Xem chi tiết
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
             )}
 
-            {/* Transactions Tab */}
-            {activeTab === 'transactions' && (
+            {activeTab === "transactions" && (
               <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Lịch sử giao dịch</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Lịch sử giao dịch
+                </h2>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Mã GD</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Loại</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Số tiền</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Phương thức</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Ngày</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Trạng thái</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Mã GD
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Loại
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Số tiền
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Phương thức
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Ngày
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                          Trạng thái
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recentDeposits.map((deposit) => (
-                        <tr key={deposit.id} className="border-t border-gray-200">
-                          <td className="py-3 px-4 font-medium text-[#0D4D8B]">{deposit.id}</td>
-                          <td className="py-3 px-4">
-                            <span className="text-green-600">+ Nạp tiền</span>
-                          </td>
-                          <td className="py-3 px-4 font-semibold text-green-600">
-                            +{deposit.amount.toLocaleString('vi-VN')}đ
-                          </td>
-                          <td className="py-3 px-4 text-sm">{deposit.method}</td>
-                          <td className="py-3 px-4 text-sm text-gray-600">{deposit.date}</td>
-                          <td className="py-3 px-4">
-                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                              Hoàn thành
-                            </span>
+                      {transactions.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="py-6 px-4 text-center text-gray-500"
+                          >
+                            Chưa có giao dịch nào
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        transactions.map((tx) => {
+                          const isPositive = tx.method === "TOP_UP";
+                          const statusUi = getTransactionStatusUi(tx.status);
+
+                          return (
+                            <tr
+                              key={tx.id}
+                              className="border-t border-gray-200"
+                            >
+                              <td className="py-3 px-4 font-medium text-[#0D4D8B]">
+                                {tx.id}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span
+                                  className={
+                                    isPositive
+                                      ? "text-green-600"
+                                      : "text-red-600"
+                                  }
+                                >
+                                  {isPositive ? "+ " : "- "}
+                                  {tx.type}
+                                </span>
+                              </td>
+                              <td
+                                className={`py-3 px-4 font-semibold ${
+                                  isPositive ? "text-green-600" : "text-red-600"
+                                }`}
+                              >
+                                {isPositive ? "+" : "-"}
+                                {formatCurrency(tx.amount)}
+                              </td>
+                              <td className="py-3 px-4 text-sm">{tx.method}</td>
+                              <td className="py-3 px-4 text-sm text-gray-600">
+                                {formatDateTime(tx.date)}
+                              </td>
+                              <td className="py-3 px-4">
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-semibold ${statusUi.className}`}
+                                >
+                                  {statusUi.label}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
             )}
 
-            {/* Transfers Tab */}
-            {activeTab === 'transfers' && (
+            {activeTab === "transfers" && (
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-800">Lịch sử chuyển tiền</h2>
+                  <h2 className="text-xl font-bold text-gray-800">
+                    Lịch sử chuyển tiền
+                  </h2>
                   <Link
                     to="/transfer"
                     className="px-4 py-2 bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white rounded-lg hover:from-[#0D4D8B] hover:to-[#E58B3D] transition font-semibold flex items-center gap-2"
@@ -360,11 +627,13 @@ export function UserProfilePage() {
                     Chuyển tiền mới
                   </Link>
                 </div>
-                
-                {recentTransfers.length === 0 ? (
+
+                {transfers.length === 0 ? (
                   <div className="text-center py-12">
                     <ArrowLeftRight className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 mb-4">Chưa có giao dịch chuyển tiền nào</p>
+                    <p className="text-gray-500 mb-4">
+                      Chưa có giao dịch chuyển tiền nào
+                    </p>
                     <Link
                       to="/transfer"
                       className="inline-flex items-center gap-2 px-6 py-3 bg-[#1EA7FD] text-[#0D4D8B] rounded-lg hover:bg-[#158DD8] transition font-semibold"
@@ -375,41 +644,65 @@ export function UserProfilePage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {recentTransfers.map((transfer) => (
+                    {transfers.map((transfer) => (
                       <div
                         key={transfer.id}
                         className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
                       >
                         <div className="flex items-center gap-4 flex-1">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                            transfer.status === 'success' ? 'bg-green-100' : 'bg-red-100'
-                          }`}>
-                            <ArrowLeftRight className={`w-6 h-6 ${
-                              transfer.status === 'success' ? 'text-green-600' : 'text-red-600'
-                            }`} />
+                          <div
+                            className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                              transfer.status === "SUCCESS"
+                                ? "bg-green-100"
+                                : "bg-red-100"
+                            }`}
+                          >
+                            <ArrowLeftRight
+                              className={`w-6 h-6 ${
+                                transfer.status === "SUCCESS"
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            />
                           </div>
                           <div className="flex-1">
-                            <p className="font-semibold text-gray-800">{transfer.recipientName}</p>
-                            <p className="text-sm text-gray-500">{transfer.recipient}</p>
-                            {transfer.note && (
-                              <p className="text-xs text-gray-400 mt-1">{transfer.note}</p>
-                            )}
-                            <p className="text-xs text-gray-400 mt-1">{transfer.id}</p>
+                            <p className="font-semibold text-gray-800">
+                              {transfer.recipientName}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {transfer.recipient}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {transfer.note}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {transfer.id}
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className={`font-bold text-lg ${
-                            transfer.status === 'success' ? 'text-red-600' : 'text-gray-400'
-                          }`}>
-                            -{transfer.amount.toLocaleString('vi-VN')}đ
+                          <p
+                            className={`font-bold text-lg ${
+                              transfer.status === "SUCCESS"
+                                ? "text-red-600"
+                                : "text-gray-400"
+                            }`}
+                          >
+                            -{formatCurrency(transfer.amount)}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">{transfer.date}</p>
-                          <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${
-                            transfer.status === 'success'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-red-100 text-red-700'
-                          }`}>
-                            {transfer.status === 'success' ? 'Thành công' : 'Thất bại'}
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatDateTime(transfer.date)}
+                          </p>
+                          <span
+                            className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                              transfer.status === "SUCCESS"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {transfer.status === "SUCCESS"
+                              ? "Thành công"
+                              : "Thất bại"}
                           </span>
                         </div>
                       </div>
@@ -419,11 +712,12 @@ export function UserProfilePage() {
               </div>
             )}
 
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
+            {activeTab === "settings" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Thông tin tài khoản</h2>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">
+                    Thông tin tài khoản
+                  </h2>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -453,59 +747,30 @@ export function UserProfilePage() {
                       </label>
                       <input
                         type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
                         placeholder="Chưa cập nhật"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
                       />
                     </div>
-                    <button className="px-6 py-3 bg-[#0D4D8B] text-white rounded-lg font-semibold hover:bg-[#0B4275] transition flex items-center gap-2">
+                    <button
+                      onClick={handleUpdateProfile}
+                      disabled={savingProfile}
+                      className="px-6 py-3 bg-[#0D4D8B] text-white rounded-lg font-semibold hover:bg-[#0B4275] transition flex items-center gap-2 disabled:opacity-50"
+                    >
                       <Edit className="w-5 h-5" />
-                      Cập nhật thông tin
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Đổi mật khẩu</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mật khẩu hiện tại
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="Nhập mật khẩu hiện tại"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mật khẩu mới
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="Nhập mật khẩu mới"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Xác nhận mật khẩu mới
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="Nhập lại mật khẩu mới"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
-                      />
-                    </div>
-                    <button className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
-                      Đổi mật khẩu
+                      {savingProfile
+                        ? "Đang cập nhật..."
+                        : "Cập nhật thông tin"}
                     </button>
                   </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Khu vực nguy hiểm</h2>
-                  <button 
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">
+                    Khu vực nguy hiểm
+                  </h2>
+                  <button
                     onClick={logout}
                     className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition flex items-center gap-2"
                   >
@@ -519,7 +784,6 @@ export function UserProfilePage() {
         </div>
       </div>
 
-      {/* Order Detail Modal */}
       {showOrderDetail && (
         <OrderDetailModal
           order={showOrderDetail}

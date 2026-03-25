@@ -1,7 +1,7 @@
-import { useState, ReactNode } from 'react';
-import { AuthContext, User } from './AuthContextCore';
-import { authService } from '../services/auth.service';
-import { UserRole } from '../services/types';
+import { useState, ReactNode } from "react";
+import { AuthContext, User } from "./AuthContextCore";
+import { authService } from "../services/auth.service";
+import { UserRole } from "../services/types";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -19,9 +19,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (
-    username: string, 
-    email: string, 
-    password: string
+    username: string,
+    email: string,
+    password: string,
   ): Promise<boolean> => {
     const response = await authService.register({
       username,
@@ -46,7 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         isAuthenticated: !!user && authService.isAuthenticated(),
-        isAdmin: !!user && authService.isAuthenticated() && user.role === UserRole.ADMIN
+        isAdmin:
+          !!user &&
+          authService.isAuthenticated() &&
+          user.role === UserRole.ADMIN,
       }}
     >
       {children}
