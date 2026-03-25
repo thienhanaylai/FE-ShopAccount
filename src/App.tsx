@@ -14,9 +14,7 @@ import { AuthLayout } from "./components/layouts/AuthLayout";
 import { DepositPage } from "./pages/DepositPage";
 import { SellAccountPage } from "./pages/SellAccountPage";
 import { SupportPage } from "./pages/SupportPage";
-import { CardTopupPage } from "./pages/CardTopupPage";
 import { UserProfilePage } from "./pages/UserProfilePage";
-import { TransferMoneyPage } from "./pages/TransferMoneyPage";
 
 // Admin Pages
 import { AdminLayout } from "./pages/admin/AdminLayout";
@@ -26,10 +24,11 @@ import { UsersManagement } from "./pages/admin/UsersManagement";
 import { AccountsManagement } from "./pages/admin/AccountsManagement";
 import { OrdersManagement } from "./pages/admin/OrdersManagement";
 import { DepositsManagement } from "./pages/admin/DepositsManagement";
-import { CardTopupManagement } from "./pages/admin/CardTopupManagement";
 import { SupportManagement } from "./pages/admin/SupportManagement";
 import { SellRequestsManagement } from "./pages/admin/SellRequestsManagement";
 import { SettingsManagement } from "./pages/admin/SettingsManagement";
+import { useEffect, useState } from "react";
+import { walletService } from "./services";
 
 function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin, isAuthenticated } = useAuth();
@@ -57,7 +56,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppContent() {
   const { user, logout, isAdmin } = useAuth();
-
+  const [balance, setBalance] = useState(0);
+  useEffect(() => {
+    try {
+      async function getBalance() {
+        const res = await walletService.getBalance();
+        console.log(res);
+        setBalance(res.balance);
+      }
+      getBalance();
+    } catch (error) {
+      return;
+    }
+  });
   return (
     <Router>
       <Routes>
@@ -76,7 +87,6 @@ function AppContent() {
           <Route path="accounts" element={<AccountsManagement />} />
           <Route path="orders" element={<OrdersManagement />} />
           <Route path="deposits" element={<DepositsManagement />} />
-          <Route path="card-topup" element={<CardTopupManagement />} />
           <Route path="support" element={<SupportManagement />} />
           <Route path="sell-requests" element={<SellRequestsManagement />} />
           <Route path="settings" element={<SettingsManagement />} />
@@ -95,35 +105,17 @@ function AppContent() {
           path="*"
           element={
             <div className="min-h-screen flex flex-col">
-              <Header
-                isLoggedIn={!!user}
-                username={user?.username}
-                balance={user?.balance}
-                onLogout={logout}
-                isAdmin={isAdmin}
-              />
+              <Header isLoggedIn={!!user} username={user?.username} balance={balance} onLogout={logout} isAdmin={isAdmin} />
 
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
-                  <Route
-                    path="/users"
-                    element={<Navigate to="/admin/users" replace />}
-                  />
+                  <Route path="/users" element={<Navigate to="/admin/users" replace />} />
                   <Route path="/shop" element={<ShopPage />} />
                   <Route path="/product/:id" element={<ProductDetailPage />} />
                   <Route path="/deposit" element={<DepositPage />} />
                   <Route path="/sell-account" element={<SellAccountPage />} />
                   <Route path="/support" element={<SupportPage />} />
-                  <Route path="/card-topup" element={<CardTopupPage />} />
-                  <Route
-                    path="/transfer"
-                    element={
-                      <ProtectedRoute>
-                        <TransferMoneyPage />
-                      </ProtectedRoute>
-                    }
-                  />
                   <Route
                     path="/profile"
                     element={

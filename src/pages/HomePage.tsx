@@ -117,7 +117,7 @@ export function HomePage() {
       <div className="bg-gradient-to-r from-[#0D4D8B] via-[#F5A65B] to-[#1EA7FD] text-white py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Mua Bán Tài Khoản Game #1 Việt Nam</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Mua Bán Tài Khoản Game Việt Nam</h1>
             <p className="text-xl text-gray-100 mb-8">Uy tín - An toàn - Giá tốt nhất thị trường</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

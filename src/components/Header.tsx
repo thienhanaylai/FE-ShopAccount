@@ -42,8 +42,8 @@ export function Header({ isLoggedIn = false, username, balance = 0, onLogout, is
               <Upload className="w-4 h-4" />
               Đăng bán
             </Link>
-            <Link to="/card-topup" className="hover:text-[#1EA7FD] transition">
-              Nạp thẻ
+            <Link to="/deposit" className="hover:text-[#1EA7FD] transition">
+              Nạp tiền
             </Link>
             <Link to="/support" className="flex items-center gap-2 hover:text-[#1EA7FD] transition">
               <HeadphonesIcon className="w-4 h-4" />
@@ -82,14 +82,6 @@ export function Header({ isLoggedIn = false, username, balance = 0, onLogout, is
                       >
                         <User className="w-4 h-4" />
                         <span>Thông tin tài khoản</span>
-                      </Link>
-                      <Link
-                        to="/transfer"
-                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <ArrowLeftRight className="w-4 h-4" />
-                        <span>Chuyển tiền</span>
                       </Link>
                       <Link
                         to="/deposit"

@@ -18,11 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const register = async (
-    username: string,
-    email: string,
-    password: string,
-  ): Promise<boolean> => {
+  const register = async (username: string, email: string, password: string): Promise<boolean> => {
     const response = await authService.register({
       username,
       email,
@@ -46,10 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         isAuthenticated: !!user && authService.isAuthenticated(),
-        isAdmin:
-          !!user &&
-          authService.isAuthenticated() &&
-          user.role === UserRole.ADMIN,
+        isAdmin: !!user && authService.isAuthenticated() && user.role === UserRole.ADMIN,
       }}
     >
       {children}

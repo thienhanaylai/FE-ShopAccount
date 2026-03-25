@@ -1,15 +1,13 @@
-import { Link } from 'react-router';
+import { Link } from "react-router";
 
 export function Footer() {
   return (
-    <footer className="bg-gray-800 text-white py-8 mt-12">
+    <footer className="bg-gray-800 text-white py-8">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h3 className="font-semibold mb-4">Về chúng tôi</h3>
-            <p className="text-gray-400 text-sm">
-              GameAccount.vn là nền tảng mua bán tài khoản game uy tín hàng đầu Việt Nam
-            </p>
+            <p className="text-gray-400 text-sm">GameAccount.vn là nền tảng mua bán tài khoản game uy tín hàng đầu Việt Nam</p>
           </div>
           <div>
             <h3 className="font-semibold mb-4">Liên hệ</h3>

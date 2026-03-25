@@ -19,13 +19,18 @@ export function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const containerClass = "relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20";
-  const glowEffectClass = "absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-3xl opacity-20 blur-2xl";
+  const glowEffectClass =
+    "absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-3xl opacity-20 blur-2xl";
   const titleClass = "text-4xl font-black bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent";
   const inputContainerClass = "relative group";
-  const inputClass = "pl-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-cyan-400/50 transition-all";
-  const passwordInputClass = "pl-12 pr-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-purple-400/50 transition-all";
-  const submitButtonClass = "w-full h-12 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 hover:from-cyan-400 hover:via-purple-400 hover:to-pink-400 text-white font-bold shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 transition-all duration-300 hover:scale-[1.02]";
-  const socialButtonClass = "flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 group";
+  const inputClass =
+    "pl-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-cyan-400/50 transition-all";
+  const passwordInputClass =
+    "pl-12 pr-12 h-12 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:bg-white/10 focus:border-purple-400/50 transition-all";
+  const submitButtonClass =
+    "w-full h-12 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 hover:from-cyan-400 hover:via-purple-400 hover:to-pink-400 text-white font-bold shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 transition-all duration-300 hover:scale-[1.02]";
+  const socialButtonClass =
+    "flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 group";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,9 +70,7 @@ export function LoginPage() {
           >
             <div className="inline-flex items-center gap-2 mb-4">
               <Sparkles className="w-6 h-6 text-cyan-400" />
-              <h2 className={titleClass}>
-                Đăng nhập
-              </h2>
+              <h2 className={titleClass}>Đăng nhập</h2>
               <Sparkles className="w-6 h-6 text-purple-400" />
             </div>
             <p className="text-gray-300">Chào mừng game thủ trở lại!</p>
@@ -86,7 +89,9 @@ export function LoginPage() {
               transition={{ delay: 0.3 }}
               className="space-y-2"
             >
-              <Label htmlFor="email" className="text-white">Email</Label>
+              <Label htmlFor="email" className="text-white">
+                Email
+              </Label>
               <div className={inputContainerClass}>
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-400 transition-all group-focus-within:scale-110 group-focus-within:text-cyan-300" />
                 <Input
@@ -94,7 +99,7 @@ export function LoginPage() {
                   type="email"
                   placeholder="email@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   className={inputClass}
                   required
                 />
@@ -107,7 +112,9 @@ export function LoginPage() {
               transition={{ delay: 0.4 }}
               className="space-y-2"
             >
-              <Label htmlFor="password" className="text-white">Mật khẩu</Label>
+              <Label htmlFor="password" className="text-white">
+                Mật khẩu
+              </Label>
               <div className={inputContainerClass}>
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400 transition-all group-focus-within:scale-110 group-focus-within:text-purple-300" />
                 <Input
@@ -115,7 +122,7 @@ export function LoginPage() {
                   type={isShowPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   className={passwordInputClass}
                   required
                 />
@@ -124,11 +131,7 @@ export function LoginPage() {
                   onClick={togglePasswordVisibility}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
-                  {isShowPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {isShowPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </motion.div>
@@ -144,28 +147,18 @@ export function LoginPage() {
                   type="checkbox"
                   className="w-4 h-4 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-400 focus:ring-offset-0"
                 />
-                <span className="text-gray-300 group-hover:text-white transition-colors">
-                  Ghi nhớ đăng nhập
-                </span>
+                <span className="text-gray-300 group-hover:text-white transition-colors">Ghi nhớ đăng nhập</span>
               </label>
-              <Link
+              {/* <Link
                 to="/forgot-password"
                 className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
               >
                 Quên mật khẩu?
-              </Link>
+              </Link> */}
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
-              <Button
-                type="submit"
-                className={submitButtonClass}
-                disabled={isLoading}
-              >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+              <Button type="submit" className={submitButtonClass} disabled={isLoading}>
                 {isLoading ? "Đang xử lý..." : "Đăng nhập ngay"}
               </Button>
             </motion.div>
@@ -178,10 +171,7 @@ export function LoginPage() {
             className="mt-6 text-center text-sm"
           >
             <span className="text-gray-300">Chưa có tài khoản? </span>
-            <Link
-              to="/register"
-              className="text-cyan-400 hover:text-cyan-300 font-bold transition-colors"
-            >
+            <Link to="/register" className="text-cyan-400 hover:text-cyan-300 font-bold transition-colors">
               Đăng ký ngay
             </Link>
           </motion.div>
@@ -189,9 +179,7 @@ export function LoginPage() {
           <div className="flex items-center gap-3 mt-8">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent to-white/20"></div>
 
-            <span className="text-gray-400 text-sm whitespace-nowrap">
-              Hoặc đăng nhập
-            </span>
+            <span className="text-gray-400 text-sm whitespace-nowrap">Hoặc đăng nhập</span>
 
             <div className="flex-1 h-px bg-gradient-to-l from-transparent to-white/20"></div>
           </div>
