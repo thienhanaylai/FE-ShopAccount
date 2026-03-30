@@ -114,6 +114,7 @@ export function SupportDetailModal({
   };
 
   const canResolve = ticket.status !== SupportTicketStatus.RESOLVED && ticket.status !== SupportTicketStatus.REJECTED;
+  const canReply = canResolve;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -172,18 +173,18 @@ export function SupportDetailModal({
               value={replyMessage}
               onChange={e => setReplyMessage(e.target.value)}
               onKeyDown={e => {
-                if (e.key === "Enter") {
+                if (e.key === "Enter" && canReply) {
                   e.preventDefault();
                   void handleSendReply();
                 }
               }}
-              placeholder="Nhập tin nhắn trả lời..."
-              disabled={isActionLoading || isReplying}
+              placeholder={canReply ? "Nhập tin nhắn trả lời..." : "Ticket đã hoàn tất, không thể phản hồi thêm"}
+              disabled={!canReply || isActionLoading || isReplying}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD] disabled:bg-gray-100"
             />
             <button
               onClick={() => void handleSendReply()}
-              disabled={!replyMessage.trim() || isActionLoading || isReplying}
+              disabled={!canReply || !replyMessage.trim() || isActionLoading || isReplying}
               className="px-6 py-3 bg-[#FF2E63] text-white rounded-lg font-semibold hover:bg-[#d9254f] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <Send className="w-5 h-5" />

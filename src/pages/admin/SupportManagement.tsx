@@ -73,6 +73,7 @@ export function SupportManagement() {
 
   const openDetailModal = async (ticket: SupportTicket) => {
     setShowDetailModal(ticket);
+    setErrorMessage(null);
 
     try {
       const latest = await supportTicketService.getById(ticket.id);
@@ -82,12 +83,19 @@ export function SupportManagement() {
     }
   };
 
+  const ensureTicketInProgress = async (ticket: SupportTicket): Promise<void> => {
+    if (ticket.status === SupportTicketStatus.PENDING) {
+      await supportTicketService.startProcessing(ticket.id);
+    }
+  };
+
   const handleResolve = async (ticket: SupportTicket) => {
     setIsActionLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
+      await ensureTicketInProgress(ticket);
       await supportTicketService.update(ticket.id, {
         status: SupportTicketStatus.RESOLVED,
       });
@@ -112,6 +120,7 @@ export function SupportManagement() {
     setSuccessMessage(null);
 
     try {
+      await ensureTicketInProgress(ticket);
       await supportTicketService.reply(ticket.id, { message: content });
       const latest = await supportTicketService.getById(ticket.id);
       setShowDetailModal(latest);
@@ -132,6 +141,7 @@ export function SupportManagement() {
     setSuccessMessage(null);
 
     try {
+      await ensureTicketInProgress(ticket);
       await supportTicketService.reply(ticket.id, {
         message: content,
         status: SupportTicketStatus.REJECTED,

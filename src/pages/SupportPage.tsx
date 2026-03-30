@@ -1,16 +1,51 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { MessageCircle, Mail, Phone, Clock, Send, Search, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import { supportTicketService } from "../services/supportTicket.service";
 import ErrorHandler from "../utils/errorHandler";
 import { useAuth } from "../hooks/useAuth";
+import { SupportTicket, SupportTicketStatus } from "../services/types";
+
+function getTicketStatusText(status: SupportTicketStatus): string {
+  switch (status) {
+    case SupportTicketStatus.PENDING:
+      return "Mới";
+    case SupportTicketStatus.IN_PROGRESS:
+      return "Đang xử lý";
+    case SupportTicketStatus.RESOLVED:
+      return "Đã giải quyết";
+    case SupportTicketStatus.REJECTED:
+      return "Từ chối";
+    default:
+      return status;
+  }
+}
+
+function getTicketStatusColor(status: SupportTicketStatus): string {
+  switch (status) {
+    case SupportTicketStatus.PENDING:
+      return "bg-yellow-100 text-yellow-700";
+    case SupportTicketStatus.IN_PROGRESS:
+      return "bg-blue-100 text-blue-700";
+    case SupportTicketStatus.RESOLVED:
+      return "bg-green-100 text-green-700";
+    case SupportTicketStatus.REJECTED:
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+}
 
 export function SupportPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [faqSearchQuery, setFaqSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingMyTickets, setIsLoadingMyTickets] = useState(false);
+  const [ticketRefreshKey, setTicketRefreshKey] = useState(0);
+  const [myTickets, setMyTickets] = useState<SupportTicket[]>([]);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -21,103 +56,157 @@ export function SupportPage() {
     category: "general",
   });
 
-  const categories = [
-    { id: "all", name: "Tất cả" },
-    { id: "account", name: "Tài khoản" },
-    { id: "payment", name: "Thanh toán" },
-    { id: "security", name: "Bảo mật" },
-    { id: "other", name: "Khác" },
-  ];
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      name: user?.username || prev.name,
+      email: user?.email || prev.email,
+    }));
+  }, [user?.email, user?.username]);
 
-  const faqs = [
-    {
-      id: 1,
-      category: "account",
-      question: "Làm sao để mua tài khoản game?",
-      answer:
-        'Để mua tài khoản game, bạn cần: 1) Đăng ký tài khoản trên website, 2) Nạp tiền vào tài khoản, 3) Chọn tài khoản game muốn mua và nhấn "Mua ngay", 4) Xác nhận thanh toán. Thông tin tài khoản sẽ được gửi qua email ngay sau khi thanh toán thành công.',
-    },
-    {
-      id: 2,
-      category: "account",
-      question: "Tôi có thể đổi trả tài khoản không?",
-      answer:
-        "Chúng tôi có chính sách bảo hành 30 ngày cho tất cả tài khoản. Nếu tài khoản có vấn đề về đăng nhập hoặc không đúng như mô tả, vui lòng liên hệ CSKH trong vòng 30 ngày để được hỗ trợ đổi tài khoản hoặc hoàn tiền.",
-    },
-    {
-      id: 3,
-      category: "payment",
-      question: "Những phương thức thanh toán nào được hỗ trợ?",
-      answer:
-        "Chúng tôi hỗ trợ nhiều phương thức thanh toán: Ví điện tử (MoMo, ZaloPay), Chuyển khoản ngân hàng, Thẻ ATM/Credit Card, và Nạp thẻ cào điện thoại.",
-    },
-    {
-      id: 4,
-      category: "payment",
-      question: "Mất bao lâu để tiền được cập nhật vào tài khoản?",
-      answer:
-        "Thời gian cập nhật tiền phụ thuộc vào phương thức thanh toán: Ví điện tử (1-5 phút), Chuyển khoản ngân hàng (5-15 phút), Thẻ cào (15-30 phút). Nếu sau thời gian trên tiền chưa được cập nhật, vui lòng liên hệ CSKH.",
-    },
-    {
-      id: 5,
-      category: "security",
-      question: "Thông tin cá nhân của tôi có an toàn không?",
-      answer:
-        "Chúng tôi cam kết bảo mật 100% thông tin cá nhân của bạn. Mọi dữ liệu đều được mã hóa SSL và không chia sẻ cho bên thứ ba. Chúng tôi tuân thủ nghiêm ngặt các quy định về bảo vệ dữ liệu cá nhân.",
-    },
-    {
-      id: 6,
-      category: "security",
-      question: "Làm sao để bảo vệ tài khoản sau khi mua?",
-      answer:
-        "Sau khi mua tài khoản, bạn nên: 1) Đổi mật khẩu ngay lập tức, 2) Liên kết email/số điện thoại của bạn, 3) Bật xác thực 2 yếu tố nếu có, 4) Không chia sẻ thông tin tài khoản với người khác, 5) Không vi phạm điều khoản của game.",
-    },
-    {
-      id: 7,
-      category: "account",
-      question: "Tôi muốn bán tài khoản game, phải làm sao?",
-      answer:
-        'Để bán tài khoản game, vào mục "Đăng bán tài khoản", điền đầy đủ thông tin và tải lên ảnh chụp màn hình. Tài khoản sẽ được kiểm duyệt trong 24h. Phí hoa hồng là 5% giá trị giao dịch.',
-    },
-    {
-      id: 8,
-      category: "payment",
-      question: "Có thể rút tiền về tài khoản ngân hàng không?",
-      answer:
-        "Có, bạn có thể yêu cầu rút tiền về tài khoản ngân hàng. Số tiền tối thiểu để rút là 100,000đ. Thời gian xử lý là 1-3 ngày làm việc. Phí rút tiền là 5,000đ/giao dịch.",
-    },
-  ];
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setMyTickets([]);
+      setTicketsError(null);
+      return;
+    }
 
-  const contactMethods = [
-    {
-      icon: MessageCircle,
-      title: "Live Chat",
-      description: "Trò chuyện trực tiếp với CSKH",
-      value: "Trực tuyến 24/7",
-      color: "bg-blue-100 text-blue-600",
-    },
-    {
-      icon: Mail,
-      title: "Email",
-      description: "Gửi email hỗ trợ",
-      value: "support@gameaccount.vn",
-      color: "bg-blue-100 text-[#0D4D8B]",
-    },
-    {
-      icon: Phone,
-      title: "Hotline",
-      description: "Gọi điện hỗ trợ",
-      value: "1900 xxxx",
-      color: "bg-green-100 text-green-600",
-    },
-    {
-      icon: Clock,
-      title: "Giờ làm việc",
-      description: "Thời gian hỗ trợ",
-      value: "24/7",
-      color: "bg-orange-100 text-orange-600",
-    },
-  ];
+    let cancelled = false;
+
+    const loadMyTickets = async () => {
+      setIsLoadingMyTickets(true);
+      setTicketsError(null);
+
+      try {
+        const response = await supportTicketService.getList({ page: 1, limit: 5 });
+        if (!cancelled) {
+          setMyTickets(response.data || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setMyTickets([]);
+          setTicketsError(ErrorHandler.getErrorMessage(error));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingMyTickets(false);
+        }
+      }
+    };
+
+    void loadMyTickets();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, ticketRefreshKey]);
+
+  const categories = useMemo(
+    () => [
+      { id: "all", name: "Tất cả" },
+      { id: "account", name: "Tài khoản" },
+      { id: "payment", name: "Thanh toán" },
+      { id: "security", name: "Bảo mật" },
+      { id: "other", name: "Khác" },
+    ],
+    [],
+  );
+
+  const faqs = useMemo(
+    () => [
+      {
+        id: 1,
+        category: "account",
+        question: "Làm sao để mua tài khoản game?",
+        answer:
+          'Để mua tài khoản game, bạn cần: 1) Đăng ký tài khoản trên website, 2) Nạp tiền vào tài khoản, 3) Chọn tài khoản game muốn mua và nhấn "Mua ngay", 4) Xác nhận thanh toán. Thông tin tài khoản sẽ được gửi qua email ngay sau khi thanh toán thành công.',
+      },
+      {
+        id: 2,
+        category: "account",
+        question: "Tôi có thể đổi trả tài khoản không?",
+        answer:
+          "Chúng tôi có chính sách bảo hành 30 ngày cho tất cả tài khoản. Nếu tài khoản có vấn đề về đăng nhập hoặc không đúng như mô tả, vui lòng liên hệ CSKH trong vòng 30 ngày để được hỗ trợ đổi tài khoản hoặc hoàn tiền.",
+      },
+      {
+        id: 3,
+        category: "payment",
+        question: "Những phương thức thanh toán nào được hỗ trợ?",
+        answer:
+          "Chúng tôi hỗ trợ nhiều phương thức thanh toán: Ví điện tử (MoMo, ZaloPay), Chuyển khoản ngân hàng, Thẻ ATM/Credit Card, và Nạp thẻ cào điện thoại.",
+      },
+      {
+        id: 4,
+        category: "payment",
+        question: "Mất bao lâu để tiền được cập nhật vào tài khoản?",
+        answer:
+          "Thời gian cập nhật tiền phụ thuộc vào phương thức thanh toán: Ví điện tử (1-5 phút), Chuyển khoản ngân hàng (5-15 phút), Thẻ cào (15-30 phút). Nếu sau thời gian trên tiền chưa được cập nhật, vui lòng liên hệ CSKH.",
+      },
+      {
+        id: 5,
+        category: "security",
+        question: "Thông tin cá nhân của tôi có an toàn không?",
+        answer:
+          "Chúng tôi cam kết bảo mật 100% thông tin cá nhân của bạn. Mọi dữ liệu đều được mã hóa SSL và không chia sẻ cho bên thứ ba. Chúng tôi tuân thủ nghiêm ngặt các quy định về bảo vệ dữ liệu cá nhân.",
+      },
+      {
+        id: 6,
+        category: "security",
+        question: "Làm sao để bảo vệ tài khoản sau khi mua?",
+        answer:
+          "Sau khi mua tài khoản, bạn nên: 1) Đổi mật khẩu ngay lập tức, 2) Liên kết email/số điện thoại của bạn, 3) Bật xác thực 2 yếu tố nếu có, 4) Không chia sẻ thông tin tài khoản với người khác, 5) Không vi phạm điều khoản của game.",
+      },
+      {
+        id: 7,
+        category: "account",
+        question: "Tôi muốn bán tài khoản game, phải làm sao?",
+        answer:
+          'Để bán tài khoản game, vào mục "Đăng bán tài khoản", điền đầy đủ thông tin và tải lên ảnh chụp màn hình. Tài khoản sẽ được kiểm duyệt trong 24h. Phí hoa hồng là 5% giá trị giao dịch.',
+      },
+      {
+        id: 8,
+        category: "payment",
+        question: "Có thể rút tiền về tài khoản ngân hàng không?",
+        answer:
+          "Có, bạn có thể yêu cầu rút tiền về tài khoản ngân hàng. Số tiền tối thiểu để rút là 100,000đ. Thời gian xử lý là 1-3 ngày làm việc. Phí rút tiền là 5,000đ/giao dịch.",
+      },
+    ],
+    [],
+  );
+
+  const contactMethods = useMemo(
+    () => [
+      {
+        icon: MessageCircle,
+        title: "Live Chat",
+        description: "Trò chuyện trực tiếp với CSKH",
+        value: "Trực tuyến 24/7",
+        color: "bg-blue-100 text-blue-600",
+      },
+      {
+        icon: Mail,
+        title: "Email",
+        description: "Gửi email hỗ trợ",
+        value: "support@gameaccount.vn",
+        color: "bg-blue-100 text-[#0D4D8B]",
+      },
+      {
+        icon: Phone,
+        title: "Hotline",
+        description: "Gọi điện hỗ trợ",
+        value: "1900 xxxx",
+        color: "bg-green-100 text-green-600",
+      },
+      {
+        icon: Clock,
+        title: "Giờ làm việc",
+        description: "Thời gian hỗ trợ",
+        value: "24/7",
+        color: "bg-orange-100 text-orange-600",
+      },
+    ],
+    [],
+  );
 
   const filteredFaqs = useMemo(() => {
     const keyword = faqSearchQuery.trim().toLowerCase();
@@ -159,15 +248,21 @@ export function SupportPage() {
 
       setSuccessMessage("Đã gửi yêu cầu hỗ trợ thành công. Chúng tôi sẽ phản hồi trong thời gian sớm nhất.");
       setExpandedFaq(null);
+      setTicketRefreshKey(prev => prev + 1);
       setFormData({
-        name: "",
-        email: "",
+        name: user?.username || "",
+        email: user?.email || "",
         subject: "",
         message: "",
         category: "general",
       });
     } catch (error) {
-      setErrorMessage(ErrorHandler.getErrorMessage(error));
+      const message = ErrorHandler.getErrorMessage(error);
+      if (message.toLowerCase().includes("internal server error")) {
+        setErrorMessage("Hệ thống hỗ trợ đang gặp lỗi máy chủ. Vui lòng thử lại sau hoặc liên hệ hotline.");
+      } else {
+        setErrorMessage(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -273,6 +368,15 @@ export function SupportPage() {
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Gửi yêu cầu hỗ trợ</h2>
 
+              {!isAuthenticated && (
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  Bạn cần đăng nhập để gửi ticket hỗ trợ.
+                  <Link to="/login" className="ml-2 font-semibold underline">
+                    Đăng nhập ngay
+                  </Link>
+                </div>
+              )}
+
               {errorMessage && (
                 <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                   {errorMessage}
@@ -294,6 +398,7 @@ export function SupportPage() {
                     value={formData.name}
                     onChange={handleChange}
                     required
+                    readOnly={isAuthenticated}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
                   />
                 </div>
@@ -306,6 +411,7 @@ export function SupportPage() {
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    readOnly={isAuthenticated}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
                   />
                 </div>
@@ -352,13 +458,45 @@ export function SupportPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !isAuthenticated}
                   className="w-full bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition flex items-center justify-center gap-2"
                 >
                   <Send className="w-5 h-5" />
-                  {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
+                  {isSubmitting ? "Đang gửi..." : !isAuthenticated ? "Đăng nhập để gửi" : "Gửi yêu cầu"}
                 </button>
               </form>
+
+              {isAuthenticated && (
+                <div className="mt-6 border-t border-gray-200 pt-4">
+                  <h3 className="mb-3 text-sm font-semibold text-gray-800">Yêu cầu gần đây của bạn</h3>
+
+                  {ticketsError && <p className="text-xs text-red-600">{ticketsError}</p>}
+
+                  {isLoadingMyTickets ? (
+                    <p className="text-sm text-gray-500">Đang tải yêu cầu...</p>
+                  ) : myTickets.length === 0 ? (
+                    <p className="text-sm text-gray-500">Bạn chưa có ticket nào.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {myTickets.map(ticket => (
+                        <div key={ticket.id} className="rounded-lg border border-gray-200 p-3">
+                          <p className="line-clamp-1 text-sm font-medium text-gray-800">{ticket.title}</p>
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-semibold ${getTicketStatusColor(ticket.status)}`}
+                            >
+                              {getTicketStatusText(ticket.status)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(ticket.createdAt).toLocaleDateString("vi-VN")}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
