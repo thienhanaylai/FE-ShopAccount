@@ -51,7 +51,7 @@ export function AdminSidebar({ onLogout }: AdminSidebarProps) {
             <h2 className="text-xl font-bold bg-gradient-to-r from-[#08D9D6] to-[#FF2E63] bg-clip-text text-transparent">
               Admin Panel
             </h2>
-            <p className="text-xs text-gray-400">GameAccount.vn</p>
+            <p className="text-xs text-gray-400">Shopaccgiare.tech</p>
           </div>
         )}
         <button onClick={() => setCollapsed(!collapsed)} className="p-2 hover:bg-gray-800 rounded-lg transition">
