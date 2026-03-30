@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { axiosService } from "../services/axios";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Mail, Wallet, ShoppingBag, Edit, Shield, LogOut, ArrowRight, Eye, ArrowLeftRight } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { OrderDetailModal } from "../components/user/OrderDetailModal";
@@ -89,8 +89,16 @@ const getTransactionStatusUi = (status?: string) => {
 
 export function UserProfilePage() {
   const { user, logout, isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "overview" || tab === "orders" || tab === "transactions" || tab === "settings") {
+      return tab;
+    }
+    return "overview";
+  });
+
   const [showOrderDetail, setShowOrderDetail] = useState<OrderItem | null>(null);
 
   const [loading, setLoading] = useState(true);
