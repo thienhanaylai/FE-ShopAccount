@@ -38,10 +38,6 @@ export function Header({ isLoggedIn = false, username, balance = 0, onLogout, is
             <Link to="/shop" className="hover:text-[#1EA7FD] transition">
               Cửa hàng
             </Link>
-            <Link to="/sell-account" className="flex items-center gap-2 hover:text-[#1EA7FD] transition">
-              <Upload className="w-4 h-4" />
-              Đăng bán
-            </Link>
             <Link to="/deposit" className="hover:text-[#1EA7FD] transition">
               Nạp tiền
             </Link>

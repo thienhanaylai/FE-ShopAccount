@@ -7,7 +7,6 @@ import {
   Wallet,
   HeadphonesIcon,
   Upload,
-  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -31,8 +30,6 @@ export function AdminSidebar({ onLogout }: AdminSidebarProps) {
     { path: "/admin/orders", icon: ShoppingCart, label: "Đơn hàng" },
     { path: "/admin/deposits", icon: Wallet, label: "Nạp tiền" },
     { path: "/admin/support", icon: HeadphonesIcon, label: "Hỗ trợ" },
-    { path: "/admin/sell-requests", icon: Upload, label: "Yêu cầu bán" },
-    { path: "/admin/settings", icon: Settings, label: "Cài đặt" },
   ];
 
   const isActive = (path: string, exact?: boolean) => {

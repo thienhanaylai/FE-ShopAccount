@@ -12,7 +12,6 @@ import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { AuthLayout } from "./components/layouts/AuthLayout";
 import { DepositPage } from "./pages/DepositPage";
-import { SellAccountPage } from "./pages/SellAccountPage";
 import { SupportPage } from "./pages/SupportPage";
 import { UserProfilePage } from "./pages/UserProfilePage";
 
@@ -25,8 +24,7 @@ import { AccountsManagement } from "./pages/admin/AccountsManagement";
 import { OrdersManagement } from "./pages/admin/OrdersManagement";
 import { DepositsManagement } from "./pages/admin/DepositsManagement";
 import { SupportManagement } from "./pages/admin/SupportManagement";
-import { SellRequestsManagement } from "./pages/admin/SellRequestsManagement";
-import { SettingsManagement } from "./pages/admin/SettingsManagement";
+
 import { useEffect, useState } from "react";
 import { walletService } from "./services";
 
@@ -105,8 +103,6 @@ function AppContent() {
           <Route path="orders" element={<OrdersManagement />} />
           <Route path="deposits" element={<DepositsManagement />} />
           <Route path="support" element={<SupportManagement />} />
-          <Route path="sell-requests" element={<SellRequestsManagement />} />
-          <Route path="settings" element={<SettingsManagement />} />
         </Route>
 
         {/* Auth Routes */}
@@ -137,7 +133,6 @@ function AppContent() {
                   <Route path="/shop" element={<ShopPage />} />
                   <Route path="/product/:id" element={<ProductDetailPage />} />
                   <Route path="/deposit" element={<DepositPage />} />
-                  <Route path="/sell-account" element={<SellAccountPage />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route
                     path="/profile"

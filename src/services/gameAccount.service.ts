@@ -1,4 +1,5 @@
 import { axiosService } from "./axios";
+import { mediaService } from "./media.service";
 import {
   GameAccount,
   CreateGameAccountRequest,
@@ -16,7 +17,7 @@ class GameAccountService {
     formData.append("password", data.password);
     formData.append("price", String(data.price));
     if (data.status) formData.append("status", data.status);
-    if (data.level) formData.append("level", String(data.level));
+    if (data.level !== undefined) formData.append("level", String(data.level));
     if (data.rank) formData.append("rank", data.rank);
     if (data.description) formData.append("description", data.description);
     if (data.images) {
@@ -45,25 +46,25 @@ class GameAccountService {
   }
 
   async update(id: string, data: UpdateGameAccountRequest): Promise<GameAccount> {
-    const formData = new FormData();
-    if (data.username) formData.append("username", data.username);
-    if (data.email) formData.append("email", data.email);
-    if (data.password) formData.append("password", data.password);
-    if (data.price) formData.append("price", String(data.price));
-    if (data.status) formData.append("status", data.status);
-    if (data.level) formData.append("level", String(data.level));
-    if (data.rank) formData.append("rank", data.rank);
-    if (data.description) formData.append("description", data.description);
-    if (data.images) {
-      data.images.forEach(img => formData.append("images", img));
-    }
-    if (data.imageFiles) {
-      data.imageFiles.forEach(file => formData.append("imageFiles", file));
+    const payload: UpdateGameAccountRequest = {};
+
+    if (data.categoryId !== undefined) payload.categoryId = data.categoryId;
+    if (data.username !== undefined) payload.username = data.username;
+    if (data.email !== undefined) payload.email = data.email;
+    if (data.password !== undefined) payload.password = data.password;
+    if (data.price !== undefined) payload.price = data.price;
+    if (data.status !== undefined) payload.status = data.status;
+    if (data.level !== undefined) payload.level = data.level;
+    if (data.rank !== undefined) payload.rank = data.rank;
+    if (data.description !== undefined) payload.description = data.description;
+    if (data.images !== undefined) payload.images = data.images;
+
+    if (data.imageFiles && data.imageFiles.length > 0) {
+      const uploads = await Promise.all(data.imageFiles.map(file => mediaService.upload(file, "game-accounts")));
+      payload.images = uploads.map(item => item.url);
     }
 
-    const response = await axiosService.patch<GameAccount>(`/game-accounts/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await axiosService.patch<GameAccount>(`/game-accounts/${id}`, payload);
     return response.data;
   }
 

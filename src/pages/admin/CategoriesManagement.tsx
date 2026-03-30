@@ -1,269 +1,407 @@
-import { useState } from 'react';
-import { Search, Plus, Edit, Trash2 } from 'lucide-react';
-import { DeleteConfirmModal } from '../../components/admin/DeleteConfirmModal';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Search, Plus, Edit, Trash2, RefreshCw } from "lucide-react";
+import { DeleteConfirmModal } from "../../components/admin/DeleteConfirmModal";
+import { gameAccountService, gameCategoryService } from "../../services";
+import type { CreateGameCategoryRequest, GameCategory, UpdateGameCategoryRequest } from "../../services/types";
+import ErrorHandler from "../../utils/errorHandler";
 
-interface Category {
-  id: string;
+type CategoryFormValue = {
   name: string;
   slug: string;
-  icon: string;
   description: string;
-  accountCount: number;
   isActive: boolean;
-  order: number;
-  createdDate: string;
+  iconFile: File | null;
+};
+
+const PAGE_SIZE = 9;
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("vi-VN");
+}
+
+function toSlug(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+function isUrlIcon(icon: string | null | undefined): boolean {
+  if (!icon) return false;
+  return /^https?:\/\//i.test(icon);
+}
+
+function renderCategoryIcon(icon: string | null, name: string) {
+  if (isUrlIcon(icon)) {
+    return <img src={icon as string} alt={name} className="h-12 w-12 rounded-lg object-cover" />;
+  }
+
+  return <div className="text-4xl leading-none">{icon || "🎮"}</div>;
 }
 
 export function CategoriesManagement() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState<Category | null>(null);
-  const [showEditModal, setShowEditModal] = useState<Partial<Category> | null>(null);
+  const [categories, setCategories] = useState<GameCategory[]>([]);
+  const [accountCountByCategory, setAccountCountByCategory] = useState<Record<string, number>>({});
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCategories, setTotalCategories] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState<GameCategory | null>(null);
+  const [showEditModal, setShowEditModal] = useState<GameCategory | "create" | null>(null);
 
-  const [categories, setCategories] = useState<Category[]>([
-    {
-      id: 'CAT001',
-      name: 'Liên Minh Huyền Thoại',
-      slug: 'lien-minh-huyen-thoai',
-      icon: '🎮',
-      description: 'MOBA 5v5 hấp dẫn nhất thế giới',
-      accountCount: 2345,
-      isActive: true,
-      order: 1,
-      createdDate: '01/01/2024'
-    },
-    {
-      id: 'CAT002',
-      name: 'PUBG Mobile',
-      slug: 'pubg-mobile',
-      icon: '🔫',
-      description: 'Game bắn súng sinh tồn',
-      accountCount: 1876,
-      isActive: true,
-      order: 2,
-      createdDate: '01/01/2024'
-    },
-    {
-      id: 'CAT003',
-      name: 'Genshin Impact',
-      slug: 'genshin-impact',
-      icon: '⚔️',
-      description: 'RPG thế giới mở',
-      accountCount: 1543,
-      isActive: true,
-      order: 3,
-      createdDate: '01/01/2024'
-    },
-    {
-      id: 'CAT004',
-      name: 'Minecraft',
-      slug: 'minecraft',
-      icon: '🧱',
-      description: 'Game xây dựng sáng tạo',
-      accountCount: 987,
-      isActive: true,
-      order: 4,
-      createdDate: '01/01/2024'
-    },
-    {
-      id: 'CAT005',
-      name: 'FIFA Online 4',
-      slug: 'fifa-online-4',
-      icon: '⚽',
-      description: 'Game bóng đá trực tuyến',
-      accountCount: 654,
-      isActive: false,
-      order: 5,
-      createdDate: '01/01/2024'
-    },
-  ]);
+  const loadAccountCounts = useCallback(async () => {
+    try {
+      let page = 1;
+      let total = 1;
+      const counter: Record<string, number> = {};
 
-  const filteredCategories = categories.filter(cat =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    cat.slug.toLowerCase().includes(searchQuery.toLowerCase())
+      while (page <= total) {
+        const response = await gameAccountService.getList({ page, limit: 100 });
+        response.data.forEach(account => {
+          counter[account.categoryId] = (counter[account.categoryId] || 0) + 1;
+        });
+
+        total = response.pagination.totalPages || 1;
+        page += 1;
+      }
+
+      setAccountCountByCategory(counter);
+    } catch {
+      setAccountCountByCategory({});
+    }
+  }, []);
+
+  const fetchCategories = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await gameCategoryService.getList({
+        page: currentPage,
+        limit: PAGE_SIZE,
+        search: searchQuery || undefined,
+      });
+
+      setCategories(response.data || []);
+      setTotalPages(response.pagination.totalPages || 1);
+      setTotalCategories(response.pagination.total || 0);
+    } catch (error) {
+      setCategories([]);
+      setTotalPages(1);
+      setTotalCategories(0);
+      setErrorMessage(ErrorHandler.getErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, searchQuery]);
+
+  useEffect(() => {
+    void fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
+    void loadAccountCounts();
+  }, [loadAccountCounts]);
+
+  const totalAccounts = useMemo(
+    () => categories.reduce((sum, category) => sum + (accountCountByCategory[category.id] || 0), 0),
+    [accountCountByCategory, categories],
   );
 
-  const handleDelete = (category: Category) => {
-    setCategories(prev => prev.filter(c => c.id !== category.id));
-    setShowDeleteModal(null);
-    alert(`Đã xóa danh mục ${category.name}`);
+  const activeCount = useMemo(() => categories.filter(category => category.isActive).length, [categories]);
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    setSearchQuery(searchInput.trim());
   };
 
-  const handleToggleStatus = (categoryId: string) => {
-    setCategories(prev =>
-      prev.map(cat =>
-        cat.id === categoryId ? { ...cat, isActive: !cat.isActive } : cat
-      )
-    );
+  const handleToggleStatus = async (category: GameCategory) => {
+    const currentState = category.isActive;
+    const nextState = !currentState;
+
+    setCategories(prev => prev.map(item => (item.id === category.id ? { ...item, isActive: nextState } : item)));
+
+    try {
+      const updatedCategory = await gameCategoryService.update(category.id, { isActive: nextState });
+
+      // Keep UI state consistent with the user's action even when backend returns stale status.
+      const finalState = updatedCategory.isActive === nextState ? updatedCategory.isActive : nextState;
+      setCategories(prev => prev.map(item => (item.id === category.id ? { ...item, isActive: finalState } : item)));
+
+      setSuccessMessage(`Đã cập nhật trạng thái danh mục ${category.name}`);
+      setErrorMessage(null);
+    } catch (error) {
+      setCategories(prev => prev.map(item => (item.id === category.id ? { ...item, isActive: currentState } : item)));
+      setSuccessMessage(null);
+      setErrorMessage(ErrorHandler.getErrorMessage(error));
+    }
+  };
+
+  const handleDelete = async (category: GameCategory) => {
+    try {
+      await gameCategoryService.delete(category.id);
+      setShowDeleteModal(null);
+      setSuccessMessage(`Đã xóa danh mục ${category.name}`);
+      setErrorMessage(null);
+
+      if (categories.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      } else {
+        await fetchCategories();
+      }
+
+      await loadAccountCounts();
+    } catch (error) {
+      setSuccessMessage(null);
+      setErrorMessage(ErrorHandler.getErrorMessage(error));
+    }
+  };
+
+  const handleSaveCategory = async (payload: CategoryFormValue) => {
+    try {
+      const normalizedSlug = payload.slug.trim() || toSlug(payload.name);
+      const editingCategory = showEditModal && showEditModal !== "create" ? showEditModal : null;
+
+      if (!editingCategory && !payload.iconFile) {
+        setSuccessMessage(null);
+        setErrorMessage("Vui lòng chọn ảnh icon cho danh mục mới.");
+        return;
+      }
+
+      const commonData = {
+        name: payload.name.trim(),
+        slug: normalizedSlug,
+        description: payload.description.trim() || undefined,
+        isActive: payload.isActive,
+        iconFile: payload.iconFile || undefined,
+      };
+
+      if (editingCategory?.id) {
+        const updateData: UpdateGameCategoryRequest = commonData;
+        await gameCategoryService.update(editingCategory.id, updateData);
+        setSuccessMessage("Đã cập nhật danh mục!");
+      } else {
+        const createData: CreateGameCategoryRequest = commonData;
+        await gameCategoryService.create(createData);
+        setSuccessMessage("Đã thêm danh mục mới!");
+        setCurrentPage(1);
+      }
+
+      setShowEditModal(null);
+      setErrorMessage(null);
+      await fetchCategories();
+    } catch (error) {
+      setSuccessMessage(null);
+      setErrorMessage(ErrorHandler.getErrorMessage(error));
+    }
   };
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Quản lý danh mục Game</h1>
-          <p className="text-gray-600">Tổng số: {categories.length} danh mục</p>
+          <h1 className="mb-2 text-3xl font-bold text-gray-800">Quản lý danh mục Game</h1>
+          <p className="text-gray-600">Tổng số: {totalCategories} danh mục</p>
         </div>
-        <button 
-          onClick={() => setShowEditModal({})}
-          className="bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white px-6 py-3 rounded-lg font-semibold hover:from-[#252A34] hover:to-[#d9254f] transition flex items-center gap-2 shadow-lg shadow-pink-500/20"
+        <button
+          onClick={() => setShowEditModal("create")}
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#252A34] to-[#FF2E63] px-6 py-3 font-semibold text-white shadow-lg shadow-pink-500/20 transition hover:from-[#252A34] hover:to-[#d9254f]"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="h-5 w-5" />
           Thêm danh mục
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <p className="text-gray-600 mb-1">Tổng danh mục</p>
-          <p className="text-3xl font-bold text-gray-800">{categories.length}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <p className="text-gray-600 mb-1">Đang hoạt động</p>
-          <p className="text-3xl font-bold text-green-600">
-            {categories.filter(c => c.isActive).length}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <p className="text-gray-600 mb-1">Tổng tài khoản</p>
-          <p className="text-3xl font-bold text-[#FF2E63]">
-            {categories.reduce((sum, c) => sum + c.accountCount, 0)}
-          </p>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm danh mục..."
-            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
-          />
-        </div>
-      </div>
-
-      {/* Categories Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCategories.map((category) => (
-          <div
-            key={category.id}
-            className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition"
+      {errorMessage && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+          <p className="text-sm font-medium">{errorMessage}</p>
+          <button
+            onClick={fetchCategories}
+            className="inline-flex shrink-0 items-center gap-2 rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium transition hover:bg-red-100"
           >
-            <div className={`h-2 ${category.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
-            
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-4xl">{category.icon}</div>
-                  <div>
-                    <h3 className="font-bold text-gray-800 text-lg">{category.name}</h3>
-                    <p className="text-sm text-gray-500">{category.slug}</p>
-                  </div>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  category.isActive
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-700'
-                }`}>
-                  {category.isActive ? 'Hoạt động' : 'Tắt'}
-                </span>
-              </div>
-
-              {/* Description */}
-              <p className="text-sm text-gray-600 mb-4">{category.description}</p>
-
-              {/* Stats */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Số tài khoản:</span>
-                  <span className="font-bold text-[#FF2E63]">{category.accountCount}</span>
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm text-gray-600">Thứ tự:</span>
-                  <span className="font-semibold text-gray-800">#{category.order}</span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleToggleStatus(category.id)}
-                  className={`flex-1 py-2 rounded-lg font-semibold transition ${
-                    category.isActive
-                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {category.isActive ? 'Tắt' : 'Bật'}
-                </button>
-                <button
-                  onClick={() => setShowEditModal(category)}
-                  className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
-                  title="Chỉnh sửa"
-                >
-                  <Edit className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setShowDeleteModal(category)}
-                  className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
-                  title="Xóa"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {filteredCategories.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">Không tìm thấy danh mục nào</p>
+            <RefreshCw className="h-4 w-4" />
+            Thử lại
+          </button>
         </div>
       )}
 
-      {/* Delete Modal */}
+      {successMessage && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+          <p className="text-sm font-medium">{successMessage}</p>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="inline-flex shrink-0 items-center gap-2 rounded-md border border-green-200 bg-white px-3 py-1.5 text-sm font-medium transition hover:bg-green-100"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
+
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="rounded-xl bg-white p-6 shadow-lg">
+          <p className="mb-1 text-gray-600">Danh mục trên trang</p>
+          <p className="text-3xl font-bold text-gray-800">{categories.length}</p>
+        </div>
+        <div className="rounded-xl bg-white p-6 shadow-lg">
+          <p className="mb-1 text-gray-600">Đang hoạt động</p>
+          <p className="text-3xl font-bold text-green-600">{activeCount}</p>
+        </div>
+        <div className="rounded-xl bg-white p-6 shadow-lg">
+          <p className="mb-1 text-gray-600">Tổng tài khoản trên trang</p>
+          <p className="text-3xl font-bold text-[#FF2E63]">{totalAccounts}</p>
+        </div>
+      </div>
+
+      <div className="mb-6 rounded-xl bg-white p-6 shadow-lg">
+        <div className="relative flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              placeholder="Tìm kiếm danh mục..."
+              className="w-full rounded-lg border border-gray-300 py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+            />
+          </div>
+          <button
+            onClick={handleSearch}
+            className="rounded-lg bg-[#FF2E63] px-4 py-3 font-medium text-white transition hover:bg-[#d9254f]"
+          >
+            Tìm
+          </button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="py-12 text-center text-gray-500">Đang tải danh mục...</div>
+      ) : categories.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="text-lg text-gray-500">Không tìm thấy danh mục nào</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {categories.map(category => (
+            <div key={category.id} className="overflow-hidden rounded-xl bg-white shadow-lg transition hover:shadow-xl">
+              <div className={`h-2 ${category.isActive ? "bg-green-500" : "bg-gray-400"}`} />
+
+              <div className="p-6">
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    {renderCategoryIcon(category.icon, category.name)}
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800">{category.name}</h3>
+                      <p className="text-sm text-gray-500">{category.slug}</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      category.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {category.isActive ? "Hoạt động" : "Tắt"}
+                  </span>
+                </div>
+
+                <p className="mb-4 line-clamp-2 text-sm text-gray-600">{category.description || "Chưa có mô tả"}</p>
+
+                <div className="mb-4 rounded-lg bg-gray-50 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Số tài khoản:</span>
+                    <span className="font-bold text-[#FF2E63]">{accountCountByCategory[category.id] || 0}</span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Ngày tạo:</span>
+                    <span className="text-sm font-semibold text-gray-800">{formatDate(category.createdAt)}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleToggleStatus(category)}
+                    className={`flex-1 rounded-lg py-2 font-semibold transition ${
+                      category.isActive
+                        ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        : "bg-green-600 text-white hover:bg-green-700"
+                    }`}
+                  >
+                    {category.isActive ? "Tắt" : "Bật"}
+                  </button>
+                  <button
+                    onClick={() => setShowEditModal(category)}
+                    className="rounded-lg bg-blue-100 p-2 text-blue-700 transition hover:bg-blue-200"
+                    title="Chỉnh sửa"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteModal(category)}
+                    className="rounded-lg bg-red-100 p-2 text-red-700 transition hover:bg-red-200"
+                    title="Xóa"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between border-t border-gray-200 px-2 py-4">
+          <p className="text-sm text-gray-600">
+            Trang {currentPage} / {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="rounded-lg border border-gray-300 px-4 py-2 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Trước
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage >= totalPages}
+              className="rounded-lg border border-gray-300 px-4 py-2 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      )}
+
       {showDeleteModal && (
         <DeleteConfirmModal
           title="Xóa danh mục"
-          message="Hành động này sẽ xóa vĩnh viễn danh mục. Tất cả tài khoản thuộc danh mục này sẽ bị ẩn."
+          message="Hành động này sẽ xóa vĩnh viễn danh mục. Tất cả tài khoản thuộc danh mục này có thể bị ảnh hưởng."
           itemName={showDeleteModal.name}
           onClose={() => setShowDeleteModal(null)}
           onConfirm={() => handleDelete(showDeleteModal)}
         />
       )}
 
-      {/* Edit Modal */}
       {showEditModal && (
         <EditCategoryModal
-          category={showEditModal.id ? showEditModal : null}
+          category={showEditModal === "create" ? null : showEditModal}
           onClose={() => setShowEditModal(null)}
-          onSave={(data) => {
-            if (showEditModal.id) {
-              // Edit
-              setCategories(prev =>
-                prev.map(cat => (cat.id === showEditModal.id ? { ...cat, ...data } : cat))
-              );
-              alert('Đã cập nhật danh mục!');
-            } else {
-              // Create
-              const newCategory: Category = {
-                ...(data as Category),
-                id: `CAT${(categories.length + 1).toString().padStart(3, '0')}`,
-                accountCount: 0,
-                createdDate: new Date().toLocaleDateString('vi-VN')
-              };
-              setCategories(prev => [...prev, newCategory]);
-              alert('Đã thêm danh mục mới!');
-            }
-            setShowEditModal(null);
-          }}
+          onSave={handleSaveCategory}
         />
       )}
     </div>
@@ -271,30 +409,33 @@ export function CategoriesManagement() {
 }
 
 interface EditCategoryModalProps {
-  category: Partial<Category> | null;
+  category: GameCategory | null;
   onClose: () => void;
-  onSave: (data: Partial<Category>) => void;
+  onSave: (data: CategoryFormValue) => void;
 }
 
-// Edit Category Modal Component
 function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps) {
-  const [formData, setFormData] = useState({
-    name: category?.name || '',
-    slug: category?.slug || '',
-    icon: category?.icon || '🎮',
-    description: category?.description || '',
-    order: category?.order || 1,
-    isActive: category?.isActive ?? true
+  const [formData, setFormData] = useState<CategoryFormValue>({
+    name: category?.name || "",
+    slug: category?.slug || "",
+    description: category?.description || "",
+    isActive: category?.isActive ?? true,
+    iconFile: null,
   });
+  const [iconPreview, setIconPreview] = useState<string>(category?.icon || "");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : type === 'number' ? parseInt(value) : value
-    }));
+  const isEdit = !!category;
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+
+    setFormData(prev => {
+      if (name === "name" && !isEdit && !prev.slug) {
+        return { ...prev, name: value, slug: toSlug(value) };
+      }
+
+      return { ...prev, [name]: value };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -302,90 +443,94 @@ function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps
     onSave(formData);
   };
 
-  const isEdit = !!category;
+  const handleIconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setFormData(prev => ({ ...prev, iconFile: file }));
+
+    if (!file) {
+      setIconPreview(category?.icon || "");
+      return;
+    }
+
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      if (typeof fileReader.result === "string") {
+        setIconPreview(fileReader.result);
+      }
+    };
+    fileReader.readAsDataURL(file);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full">
-        <div className="bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white p-6 flex items-center justify-between rounded-t-2xl shadow-lg">
-          <h2 className="text-2xl font-bold">
-            {isEdit ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới'}
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition text-white">
-            <Plus className="w-6 h-6 rotate-45" />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-2xl rounded-2xl bg-white">
+        <div className="flex items-center justify-between rounded-t-2xl bg-gradient-to-r from-[#252A34] to-[#FF2E63] p-6 text-white shadow-lg">
+          <h2 className="text-2xl font-bold">{isEdit ? "Chỉnh sửa danh mục" : "Thêm danh mục mới"}</h2>
+          <button onClick={onClose} className="rounded-lg p-2 text-white transition hover:bg-white/20">
+            <Plus className="h-6 w-6 rotate-45" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Tên danh mục <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="name"
               value={formData.name}
-              onChange={handleChange}
+              onChange={handleTextChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="VD: Liên Minh Huyền Thoại"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Slug (URL) <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="slug"
               value={formData.slug}
-              onChange={handleChange}
+              onChange={handleTextChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="VD: lien-minh-huyen-thoai"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Icon (Emoji)
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Ảnh icon {!isEdit && <span className="text-red-500">*</span>}
             </label>
             <input
-              type="text"
-              name="icon"
-              value={formData.icon}
-              onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
-              placeholder="🎮"
+              type="file"
+              accept="image/*"
+              onChange={handleIconFileChange}
+              required={!isEdit}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 file:mr-3 file:rounded-md file:border-0 file:bg-[#FF2E63] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-[#d9254f]"
             />
+            {iconPreview && (
+              <div className="mt-3 inline-flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <img src={iconPreview} alt="Icon preview" className="h-10 w-10 rounded-md object-cover" />
+                <span className="text-sm text-gray-600">Ảnh xem trước</span>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-gray-500">Chỉ chọn 1 ảnh, dung lượng phù hợp để hiển thị icon danh mục.</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mô tả
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Mô tả</label>
             <textarea
               name="description"
               value={formData.description}
-              onChange={handleChange}
+              onChange={handleTextChange}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63] resize-none"
+              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="Mô tả ngắn về danh mục"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Thứ tự hiển thị
-            </label>
-            <input
-              type="number"
-              name="order"
-              value={formData.order}
-              onChange={handleChange}
-              min="1"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             />
           </div>
 
@@ -394,23 +539,23 @@ function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps
               type="checkbox"
               name="isActive"
               checked={formData.isActive}
-              onChange={handleChange}
-              className="w-4 h-4 text-[#FF2E63] rounded focus:ring-[#FF2E63]"
+              onChange={e => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+              className="h-4 w-4 rounded text-[#FF2E63] focus:ring-[#FF2E63]"
             />
             <label className="text-sm text-gray-700">Kích hoạt danh mục</label>
           </div>
 
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 border-t pt-4">
             <button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-[#252A34] to-[#FF2E63] text-white py-3 rounded-lg font-semibold hover:from-[#252A34] hover:to-[#d9254f] transition shadow-lg shadow-pink-500/20"
+              className="flex-1 rounded-lg bg-gradient-to-r from-[#252A34] to-[#FF2E63] py-3 font-semibold text-white shadow-lg shadow-pink-500/20 transition hover:from-[#252A34] hover:to-[#d9254f]"
             >
-              {isEdit ? 'Lưu thay đổi' : 'Thêm danh mục'}
+              {isEdit ? "Lưu thay đổi" : "Thêm danh mục"}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+              className="flex-1 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 transition hover:bg-gray-300"
             >
               Hủy
             </button>

@@ -221,6 +221,7 @@ export interface CreateGameAccountRequest {
 }
 
 export interface UpdateGameAccountRequest {
+  categoryId?: string;
   username?: string;
   email?: string;
   password?: string;
@@ -393,8 +394,20 @@ export interface UpdateSellRequestRequest {
 export interface SupportTicketReply {
   id: string;
   message: string;
-  handledBy: string;
+  handledBy?: string;
+  adminId?: string;
+  admin?: {
+    id: string;
+    username: string;
+    email: string;
+  };
   createdAt: string;
+}
+
+export interface SupportTicketUser {
+  id: string;
+  username: string;
+  email: string;
 }
 
 export interface SupportTicket {
@@ -405,7 +418,10 @@ export interface SupportTicket {
   category: string;
   status: SupportTicketStatus;
   handledBy?: string | null;
+  handledAt?: string | null;
   replies?: SupportTicketReply[];
+  user?: SupportTicketUser;
+  handler?: SupportTicketUser | null;
   resolvedAt?: string | null;
   createdAt: string;
   updatedAt: string;

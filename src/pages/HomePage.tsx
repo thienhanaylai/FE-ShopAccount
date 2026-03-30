@@ -252,20 +252,25 @@ export function HomePage() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Bắt đầu ngay hôm nay!</h2>
-          <p className="text-xl text-gray-100 mb-8 max-w-2xl mx-auto">
-            Đăng ký tài khoản miễn phí và khám phá hàng ngàn tài khoản game chất lượng
-          </p>
-          <Link
-            to="/register"
-            className="inline-block bg-[#1EA7FD] text-[#0D4D8B] px-8 py-3 rounded-lg font-semibold hover:bg-[#158DD8] transition"
-          >
-            Đăng ký miễn phí
-          </Link>
+
+      {!isLoggedIn ? (
+        <div className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold mb-4">Bắt đầu ngay hôm nay!</h2>
+            <p className="text-xl text-gray-100 mb-8 max-w-2xl mx-auto">
+              Đăng ký tài khoản miễn phí và khám phá hàng ngàn tài khoản game chất lượng
+            </p>
+            <Link
+              to="/register"
+              className="inline-block bg-[#1EA7FD] text-[#0D4D8B] px-8 py-3 rounded-lg font-semibold hover:bg-[#158DD8] transition"
+            >
+              Đăng ký miễn phí
+            </Link>
+          </div>
         </div>
-      </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 }

@@ -16,8 +16,8 @@ type UiOrder = {
 };
 
 const STATUS_LABELS: Record<UiOrderStatus, string> = {
-  success: "Thành công",
-  failed: "Thất bại",
+  success: "success",
+  failed: "failed",
 };
 
 function mapApiStatusToUi(status: OrderStatus): UiOrderStatus {
@@ -38,6 +38,15 @@ function formatDate(value: string): string {
   return date.toLocaleString("vi-VN");
 }
 
+function toNumber(value: unknown, fallback = 0): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function formatMoney(value: number): string {
+  return `${value.toLocaleString("vi-VN")}đ`;
+}
+
 function toUiOrder(order: Order): UiOrder {
   const status = mapApiStatusToUi(order.status);
 
@@ -45,7 +54,7 @@ function toUiOrder(order: Order): UiOrder {
     id: order.id,
     userId: order.user?.username || order.user?.email || order.userId,
     gameAccountId: order.gameAccountId,
-    price: order.price,
+    price: toNumber(order.price),
     status,
     createdAt: formatDate(order.createdAt),
     updatedAt: formatDate(order.updatedAt),
@@ -78,7 +87,7 @@ export function OrdersManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, [filterStatus]);
+  }, []);
 
   useEffect(() => {
     void fetchOrders();
@@ -207,7 +216,7 @@ export function OrdersManagement() {
                     <td className="py-4 px-6 font-medium text-[#0D4D8B]">{order.id}</td>
                     <td className="py-4 px-6 text-gray-800">{order.userId}</td>
                     <td className="py-4 px-6 text-gray-600">{order.gameAccountId}</td>
-                    <td className="py-4 px-6 font-semibold text-gray-800">{order.price.toLocaleString("vi-VN")}đ</td>
+                    <td className="py-4 px-6 font-semibold text-gray-800">{formatMoney(order.price)}</td>
                     <td className="py-4 px-6">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
                         {getStatusText(order.status)}
