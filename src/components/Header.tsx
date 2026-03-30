@@ -1,4 +1,4 @@
-import { User, Menu, Wallet, LogOut, Upload, HeadphonesIcon, Shield, ArrowLeftRight } from "lucide-react";
+import { User, Menu, Wallet, LogOut, Upload, HeadphonesIcon, Shield } from "lucide-react";
 import { Link } from "react-router";
 import { useState } from "react";
 

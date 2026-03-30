@@ -57,18 +57,35 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppContent() {
   const { user, logout, isAdmin } = useAuth();
   const [balance, setBalance] = useState(0);
+  const displayedBalance = user ? balance : 0;
+
   useEffect(() => {
-    try {
-      async function getBalance() {
-        const res = await walletService.getBalance();
-        console.log(res);
-        setBalance(res.balance);
-      }
-      getBalance();
-    } catch (error) {
+    if (!user) {
       return;
     }
-  });
+
+    let isMounted = true;
+
+    async function getBalance() {
+      try {
+        const res = await walletService.getBalance();
+        if (isMounted) {
+          setBalance(res.balance);
+        }
+      } catch {
+        if (isMounted) {
+          setBalance(0);
+        }
+      }
+    }
+
+    getBalance();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
   return (
     <Router>
       <Routes>
@@ -105,7 +122,13 @@ function AppContent() {
           path="*"
           element={
             <div className="min-h-screen flex flex-col">
-              <Header isLoggedIn={!!user} username={user?.username} balance={balance} onLogout={logout} isAdmin={isAdmin} />
+              <Header
+                isLoggedIn={!!user}
+                username={user?.username}
+                balance={displayedBalance}
+                onLogout={logout}
+                isAdmin={isAdmin}
+              />
 
               <main className="flex-1">
                 <Routes>

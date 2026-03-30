@@ -42,15 +42,22 @@ class AxiosService {
         return response;
       },
       async (error: AxiosError) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+        const requestUrl = originalRequest?.url ?? "";
+        const isAuthEndpoint = ["/auth/login", "/auth/register", "/auth/forgot-password", "/auth/reset-password"].some(endpoint =>
+          requestUrl.includes(endpoint),
+        );
+        const isOnLoginPage = window.location.pathname === "/login";
 
         // Handle 401 Unauthorized
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
           originalRequest._retry = true;
           // Clear token and redirect to login
           this.clearToken();
-          // Optionally redirect to login page
-          window.location.href = "/login";
+          // Prevent full-page reload loops when user is already on login screen.
+          if (!isOnLoginPage) {
+            window.location.href = "/login";
+          }
         }
 
         return Promise.reject(error);

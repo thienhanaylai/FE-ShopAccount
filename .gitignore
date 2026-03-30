@@ -32,3 +32,4 @@ test-snapshots/
 screenshots/
 dist/
 .env
+build/
