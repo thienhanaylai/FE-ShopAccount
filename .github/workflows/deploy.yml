@@ -43,7 +43,7 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           password: ${{ secrets.VM_PASSWORD }}
-          source: dist/
+          source: build/
           target: /var/www/shopaccount/
           strip_components: 1
 
