@@ -4,7 +4,7 @@ export type AdminOrderDetail = {
   id: string;
   userId: string;
   gameAccountId: string;
-  price: number;
+  price?: number | null;
   status: 'success' | 'failed';
   createdAt: string;
   updatedAt: string;
@@ -13,6 +13,14 @@ export type AdminOrderDetail = {
 interface OrderDetailModalProps {
   order: AdminOrderDetail;
   onClose: () => void;
+}
+
+function formatPrice(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 'N/A';
+  }
+
+  return `${value.toLocaleString('vi-VN')}đ`;
 }
 
 export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
@@ -64,7 +72,7 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
               <DollarSign className="h-4 w-4" />
               <p className="font-semibold">Giá</p>
             </div>
-            <p className="text-lg font-bold text-gray-900">{order.price.toLocaleString('vi-VN')}đ</p>
+            <p className="text-lg font-bold text-gray-900">{formatPrice(order.price)}</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

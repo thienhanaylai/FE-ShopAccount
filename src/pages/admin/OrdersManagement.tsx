@@ -9,7 +9,7 @@ type UiOrder = {
   id: string;
   userId: string;
   gameAccountId: string;
-  price: number;
+  price: number | null;
   status: UiOrderStatus;
   createdAt: string;
   updatedAt: string;
@@ -38,14 +38,38 @@ function formatDate(value: string): string {
   return date.toLocaleString("vi-VN");
 }
 
+function normalizePrice(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function formatPrice(value: number | null): string {
+  if (value === null) {
+    return "N/A";
+  }
+
+  return `${value.toLocaleString("vi-VN")}đ`;
+}
+
 function toUiOrder(order: Order): UiOrder {
   const status = mapApiStatusToUi(order.status);
+  const price = normalizePrice((order as Partial<Order> & { price?: unknown }).price);
 
   return {
     id: order.id,
     userId: order.user?.username || order.user?.email || order.userId,
     gameAccountId: order.gameAccountId,
-    price: order.price,
+    price,
     status,
     createdAt: formatDate(order.createdAt),
     updatedAt: formatDate(order.updatedAt),
@@ -207,7 +231,7 @@ export function OrdersManagement() {
                     <td className="py-4 px-6 font-medium text-[#0D4D8B]">{order.id}</td>
                     <td className="py-4 px-6 text-gray-800">{order.userId}</td>
                     <td className="py-4 px-6 text-gray-600">{order.gameAccountId}</td>
-                    <td className="py-4 px-6 font-semibold text-gray-800">{order.price.toLocaleString("vi-VN")}đ</td>
+                    <td className="py-4 px-6 font-semibold text-gray-800">{formatPrice(order.price)}</td>
                     <td className="py-4 px-6">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
                         {getStatusText(order.status)}
