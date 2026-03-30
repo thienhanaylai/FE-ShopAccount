@@ -2,7 +2,7 @@
 const VITE_ENV = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
 
 export const API_CONFIG = {
-  BASE_URL: "https://api.shopaccgiare.tech",
+  BASE_URL: "http://localhost:3000/",
   TIMEOUT: 30000,
   ENDPOINTS: {
     // Auth

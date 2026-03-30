@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { MessageCircle, Mail, Phone, Clock, Send, Search, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { supportTicketService } from '../services/supportTicket.service';
+import ErrorHandler from '../utils/errorHandler';
+import { useAuth } from '../hooks/useAuth';
 
 export function SupportPage() {
+  const { isAuthenticated } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [faqSearchQuery, setFaqSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -103,13 +111,48 @@ export function SupportPage() {
     }
   ];
 
-  const filteredFaqs = activeCategory === 'all' 
-    ? faqs 
-    : faqs.filter(faq => faq.category === activeCategory);
+  const filteredFaqs = useMemo(() => {
+    const keyword = faqSearchQuery.trim().toLowerCase();
+    return faqs.filter((faq) => {
+      const matchesCategory = activeCategory === 'all' || faq.category === activeCategory;
+      const matchesSearch =
+        keyword.length === 0 ||
+        faq.question.toLowerCase().includes(keyword) ||
+        faq.answer.toLowerCase().includes(keyword);
 
-  const handleSubmit = (e: React.FormEvent) => {
+      return matchesCategory && matchesSearch;
+    });
+  }, [activeCategory, faqs, faqSearchQuery]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Đã gửi yêu cầu hỗ trợ thành công! Chúng tôi sẽ phản hồi trong vòng 24h.');
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!isAuthenticated) {
+      setErrorMessage('Vui lòng đăng nhập trước khi gửi yêu cầu hỗ trợ.');
+      return;
+    }
+
+    const title = formData.subject.trim();
+    const description = formData.message.trim();
+
+    if (!title || !description) {
+      setErrorMessage('Vui lòng nhập đầy đủ tiêu đề và nội dung yêu cầu.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await supportTicketService.create({
+        title,
+        description,
+        category: formData.category,
+      });
+
+      setSuccessMessage('Đã gửi yêu cầu hỗ trợ thành công. Chúng tôi sẽ phản hồi trong thời gian sớm nhất.');
+      setExpandedFaq(null);
     setFormData({
       name: '',
       email: '',
@@ -117,10 +160,17 @@ export function SupportPage() {
       message: '',
       category: 'general'
     });
+    } catch (error) {
+      setErrorMessage(ErrorHandler.getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    if (errorMessage) setErrorMessage(null);
+    if (successMessage) setSuccessMessage(null);
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -173,6 +223,8 @@ export function SupportPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
+                  value={faqSearchQuery}
+                  onChange={(e) => setFaqSearchQuery(e.target.value)}
                   placeholder="Tìm kiếm câu hỏi..."
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1EA7FD]"
                 />
@@ -232,6 +284,18 @@ export function SupportPage() {
               <h2 className="text-xl font-bold text-gray-800 mb-4">
                 Gửi yêu cầu hỗ trợ
               </h2>
+
+              {errorMessage && (
+                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {errorMessage}
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                  {successMessage}
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -310,10 +374,11 @@ export function SupportPage() {
 
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="w-full bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white py-3 rounded-lg font-semibold hover:from-[#0B4275] hover:to-[#E58B3D] transition flex items-center justify-center gap-2"
                 >
                   <Send className="w-5 h-5" />
-                  Gửi yêu cầu
+                  {isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
                 </button>
               </form>
             </div>
