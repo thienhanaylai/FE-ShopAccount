@@ -158,6 +158,7 @@ export interface HomeAccountCard {
 }
 
 export interface HomeGameCard {
+  categoryId?: string;
   name: string;
   count: number;
   image: string;

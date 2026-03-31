@@ -22,6 +22,58 @@ const HOME_STATS = [
   { label: "Đánh giá 5 sao", value: "12,000+", icon: Star },
 ];
 
+const LIST_LIMIT = 100;
+const MAX_PAGES = 20;
+
+type NormalizedList<T> = {
+  items: T[];
+  totalPages: number;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null;
+};
+
+const toNumber = (value: unknown, fallback = 1): number => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeListPayload = <T,>(payload: unknown): NormalizedList<T> => {
+  if (Array.isArray(payload)) {
+    return { items: payload as T[], totalPages: 1 };
+  }
+
+  if (isRecord(payload)) {
+    const items = Array.isArray(payload.data) ? (payload.data as T[]) : [];
+    const totalPages = isRecord(payload.pagination) ? Math.max(1, toNumber(payload.pagination.totalPages, 1)) : 1;
+    return { items, totalPages };
+  }
+
+  return { items: [], totalPages: 1 };
+};
+
+const fetchAllPages = async <T,>(
+  loader: (page: number, limit: number) => Promise<unknown>,
+  limit = LIST_LIMIT,
+  maxPages = MAX_PAGES,
+): Promise<T[]> => {
+  const firstPayload = await loader(1, limit);
+  const first = normalizeListPayload<T>(firstPayload);
+
+  let merged = [...first.items];
+  const pages = Math.min(first.totalPages, maxPages);
+
+  if (pages > 1) {
+    const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => loader(i + 2, limit)));
+    rest.forEach(payload => {
+      merged = merged.concat(normalizeListPayload<T>(payload).items);
+    });
+  }
+
+  return merged;
+};
+
 const resolveAccountImage = (images?: GameAccount["images"]): string => {
   if (!images || images.length === 0) {
     return FALLBACK_GAME_IMAGE;
@@ -60,7 +112,8 @@ const mapGames = (categories: GameCategory[], accounts: GameAccount[]): HomeGame
     countByCategoryId.set(account.categoryId, current + 1);
   });
 
-  return categories.slice(0, 4).map(category => ({
+  return categories.map(category => ({
+    categoryId: category.id,
     name: category.name,
     count: countByCategoryId.get(category.id) ?? 0,
     image: category.icon || FALLBACK_GAME_IMAGE,
@@ -78,13 +131,24 @@ export function HomePage() {
     setErrorMessage("");
 
     try {
-      const [categoriesRes, accountsRes] = await Promise.all([
-        gameCategoryService.getList({ page: 1, limit: 8, isActive: true }),
-        gameAccountService.getList({ page: 1, limit: 12, status: GameAccountStatus.AVAILABLE }),
+      const [allCategories, allAvailableAccounts] = await Promise.all([
+        fetchAllPages<GameCategory>((page, limit) => gameCategoryService.getList({ page, limit }) as Promise<unknown>),
+        fetchAllPages<GameAccount>(
+          (page, limit) =>
+            gameAccountService.getList({
+              page,
+              limit,
+              status: GameAccountStatus.AVAILABLE,
+            }) as Promise<unknown>,
+        ),
       ]);
 
-      setCategories(categoriesRes.data || []);
-      setAccounts(accountsRes.data || []);
+      const activeCategories = allCategories.filter(category => category.isActive === true);
+      const activeCategoryIds = new Set(activeCategories.map(category => category.id));
+      const visibleAccounts = allAvailableAccounts.filter(account => activeCategoryIds.has(account.categoryId));
+
+      setCategories(activeCategories);
+      setAccounts(visibleAccounts);
     } catch (error) {
       setErrorMessage(ErrorHandler.getErrorMessage(error));
     } finally {
@@ -213,7 +277,7 @@ export function HomePage() {
           {games.map((game, index) => (
             <Link
               key={index}
-              to="/shop"
+              to={`/shop?categoryId=${encodeURIComponent(game.categoryId || "")}`}
               className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition group"
             >
               <div className="relative h-32 overflow-hidden">

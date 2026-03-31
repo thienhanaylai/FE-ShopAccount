@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, Plus, Edit, Trash2, RefreshCw } from "lucide-react";
 import { DeleteConfirmModal } from "../../components/admin/DeleteConfirmModal";
 import { gameAccountService, gameCategoryService } from "../../services";
-import type { CreateGameCategoryRequest, GameCategory, UpdateGameCategoryRequest } from "../../services/types";
+import {
+  GameAccountStatus,
+  type CreateGameCategoryRequest,
+  type GameCategory,
+  type UpdateGameCategoryRequest,
+} from "../../services/types";
 import ErrorHandler from "../../utils/errorHandler";
 
 type CategoryFormValue = {
@@ -56,6 +61,7 @@ export function CategoriesManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [updatingCategoryId, setUpdatingCategoryId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<GameCategory | null>(null);
   const [showEditModal, setShowEditModal] = useState<GameCategory | "create" | null>(null);
 
@@ -120,30 +126,82 @@ export function CategoriesManagement() {
 
   const activeCount = useMemo(() => categories.filter(category => category.isActive).length, [categories]);
 
+  const syncAccountsByCategoryStatus = useCallback(async (categoryId: string, isCategoryActive: boolean) => {
+    let page = 1;
+    let totalPages = 1;
+    const accounts = [] as Array<{ id: string; status: GameAccountStatus }>;
+
+    while (page <= totalPages) {
+      const response = await gameAccountService.getList({
+        page,
+        limit: 100,
+        categoryId,
+      });
+
+      response.data.forEach(account => {
+        accounts.push({ id: account.id, status: account.status });
+      });
+
+      totalPages = response.pagination.totalPages || 1;
+      page += 1;
+    }
+
+    const updates = isCategoryActive
+      ? accounts.filter(account => account.status === GameAccountStatus.HIDDEN)
+      : accounts.filter(account => account.status !== GameAccountStatus.HIDDEN && account.status !== GameAccountStatus.SOLD);
+
+    if (updates.length === 0) {
+      return { updated: 0, failed: 0 };
+    }
+
+    const targetStatus = isCategoryActive ? GameAccountStatus.AVAILABLE : GameAccountStatus.HIDDEN;
+
+    const results = await Promise.allSettled(
+      updates.map(account =>
+        gameAccountService.update(account.id, {
+          status: targetStatus,
+        }),
+      ),
+    );
+
+    const updated = results.filter(result => result.status === "fulfilled").length;
+    const failed = results.length - updated;
+
+    return { updated, failed };
+  }, []);
+
   const handleSearch = () => {
     setCurrentPage(1);
     setSearchQuery(searchInput.trim());
   };
 
   const handleToggleStatus = async (category: GameCategory) => {
-    const currentState = category.isActive;
-    const nextState = !currentState;
+    const nextState = !category.isActive;
 
-    setCategories(prev => prev.map(item => (item.id === category.id ? { ...item, isActive: nextState } : item)));
+    setUpdatingCategoryId(category.id);
+    setErrorMessage(null);
+    setSuccessMessage(null);
 
     try {
-      const updatedCategory = await gameCategoryService.update(category.id, { isActive: nextState });
+      await gameCategoryService.update(category.id, { isActive: nextState });
 
-      // Keep UI state consistent with the user's action even when backend returns stale status.
-      const finalState = updatedCategory.isActive === nextState ? updatedCategory.isActive : nextState;
-      setCategories(prev => prev.map(item => (item.id === category.id ? { ...item, isActive: finalState } : item)));
+      const syncResult = await syncAccountsByCategoryStatus(category.id, nextState);
 
-      setSuccessMessage(`Đã cập nhật trạng thái danh mục ${category.name}`);
-      setErrorMessage(null);
+      await fetchCategories();
+      await loadAccountCounts();
+
+      if (syncResult.failed > 0) {
+        setSuccessMessage(
+          `Đã ${nextState ? "bật" : "tắt"} danh mục ${category.name}. Đồng bộ ${syncResult.updated} tài khoản, lỗi ${syncResult.failed} tài khoản.`,
+        );
+      } else {
+        setSuccessMessage(`Đã ${nextState ? "bật" : "tắt"} danh mục ${category.name}. Đồng bộ ${syncResult.updated} tài khoản.`);
+      }
     } catch (error) {
-      setCategories(prev => prev.map(item => (item.id === category.id ? { ...item, isActive: currentState } : item)));
       setSuccessMessage(null);
       setErrorMessage(ErrorHandler.getErrorMessage(error));
+    } finally {
+      setUpdatingCategoryId(null);
     }
   };
 
@@ -334,13 +392,14 @@ export function CategoriesManagement() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleToggleStatus(category)}
+                    disabled={updatingCategoryId === category.id}
                     className={`flex-1 rounded-lg py-2 font-semibold transition ${
                       category.isActive
                         ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
                         : "bg-green-600 text-white hover:bg-green-700"
-                    }`}
+                    } disabled:cursor-not-allowed disabled:opacity-60`}
                   >
-                    {category.isActive ? "Tắt" : "Bật"}
+                    {updatingCategoryId === category.id ? "Đang lưu..." : category.isActive ? "Tắt" : "Bật"}
                   </button>
                   <button
                     onClick={() => setShowEditModal(category)}

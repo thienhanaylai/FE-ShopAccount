@@ -1,3 +1,4 @@
+import axios from "axios";
 import { axiosService } from "./axios";
 import { mediaService } from "./media.service";
 import {
@@ -9,6 +10,17 @@ import {
 } from "./types";
 
 class GameCategoryService {
+  private unwrapCategoryResponse(payload: unknown): GameCategory {
+    if (typeof payload === "object" && payload !== null && "data" in payload) {
+      const nested = (payload as { data?: unknown }).data;
+      if (nested && typeof nested === "object") {
+        return nested as GameCategory;
+      }
+    }
+
+    return payload as GameCategory;
+  }
+
   async create(data: CreateGameCategoryRequest): Promise<GameCategory> {
     const formData = new FormData();
     formData.append("name", data.name);
@@ -37,12 +49,16 @@ class GameCategoryService {
   }
 
   async update(id: string, data: UpdateGameCategoryRequest): Promise<GameCategory> {
-    const payload: UpdateGameCategoryRequest = {};
+    const payload: Record<string, unknown> = {};
 
     if (data.name !== undefined) payload.name = data.name;
     if (data.slug !== undefined) payload.slug = data.slug;
     if (data.description !== undefined) payload.description = data.description;
-    if (data.isActive !== undefined) payload.isActive = data.isActive;
+    if (data.isActive !== undefined) {
+      payload.isActive = data.isActive;
+      // Compatibility alias for backends that use snake_case DTO mapping.
+      payload.is_active = data.isActive;
+    }
     if (data.icon !== undefined) payload.icon = data.icon;
 
     if (data.iconFile) {
@@ -50,8 +66,17 @@ class GameCategoryService {
       payload.icon = uploaded.url;
     }
 
-    const response = await axiosService.patch<GameCategory>(`/game-categories/${id}`, payload);
-    return response.data;
+    try {
+      const response = await axiosService.patch<unknown>(`/game-categories/${id}`, payload);
+      return this.unwrapCategoryResponse(response.data);
+    } catch (error: unknown) {
+      const statusCode = axios.isAxiosError(error) ? error.response?.status : undefined;
+      if (statusCode === 404 || statusCode === 405) {
+        const fallbackResponse = await axiosService.put<unknown>(`/game-categories/${id}`, payload);
+        return this.unwrapCategoryResponse(fallbackResponse.data);
+      }
+      throw error;
+    }
   }
 
   async delete(id: string): Promise<void> {

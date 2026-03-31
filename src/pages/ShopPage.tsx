@@ -1,15 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { FilterSidebar } from "../components/FilterSidebar";
 import { GameAccountCard } from "../components/GameAccountCard";
 import { Banner } from "../components/Banner";
 import { gameAccountService, gameCategoryService } from "../services";
-import type { GameAccount, GameAccountImage } from "../services/types";
+import { GameAccountStatus, type GameAccount, type GameAccountImage } from "../services/types";
 import ErrorHandler from "../utils/errorHandler";
 
+const PRICE_RANGES: Record<string, { min?: number; max?: number }> = {
+  "under-100k": { max: 100_000 },
+  "100k-500k": { min: 100_000, max: 500_000 },
+  "500k-1m": { min: 500_000, max: 1_000_000 },
+  "1m-5m": { min: 1_000_000, max: 5_000_000 },
+  "over-5m": { min: 5_000_000 },
+};
+
+function inPriceRange(price: number, rangeId: string): boolean {
+  const range = PRICE_RANGES[rangeId];
+  if (!range) return true;
+
+  const meetsMin = range.min === undefined || price >= range.min;
+  const meetsMax = range.max === undefined || price < range.max;
+  return meetsMin && meetsMax;
+}
+
 export function ShopPage() {
-  const [selectedGame, setSelectedGame] = useState("Tất cả");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialCategoryId = searchParams.get("categoryId") || "all";
+  const initialPriceRanges = (searchParams.get("priceRanges") || "")
+    .split(",")
+    .map(item => item.trim())
+    .filter(item => !!item && item in PRICE_RANGES);
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>(initialPriceRanges);
   const [accounts, setAccounts] = useState<GameAccount[]>([]);
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -21,7 +48,7 @@ export function ShopPage() {
       try {
         const [accountsRes, categoriesRes] = await Promise.all([
           gameAccountService.getList({ page: 1, limit: 100 }),
-          gameCategoryService.getList({ page: 1, limit: 100 }),
+          gameCategoryService.getList({ page: 1, limit: 100, isActive: true }),
         ]);
 
         const mappedCategories = categoriesRes.data.reduce<Record<string, string>>((acc, category) => {
@@ -29,7 +56,17 @@ export function ShopPage() {
           return acc;
         }, {});
 
+        const categoryOptions = categoriesRes.data.map(category => ({
+          id: category.id,
+          name: category.name,
+        }));
+
+        if (selectedCategoryId !== "all" && !mappedCategories[selectedCategoryId]) {
+          setSelectedCategoryId("all");
+        }
+
         setCategoryMap(mappedCategories);
+        setCategories(categoryOptions);
         setAccounts(accountsRes.data);
       } catch (error: unknown) {
         setErrorMessage(ErrorHandler.getErrorMessage(error));
@@ -41,15 +78,49 @@ export function ShopPage() {
     fetchShopData();
   }, []);
 
-  const filteredAccounts = useMemo(() => {
-    const availableAccounts = accounts.filter(account => account.status === "AVAILABLE");
+  useEffect(() => {
+    const params = new URLSearchParams();
 
-    if (selectedGame === "Tất cả") {
-      return availableAccounts;
+    if (selectedCategoryId === "all") {
+      params.delete("categoryId");
+    } else {
+      params.set("categoryId", selectedCategoryId);
     }
 
-    return availableAccounts.filter(account => categoryMap[account.categoryId] === selectedGame);
-  }, [accounts, categoryMap, selectedGame]);
+    if (selectedPriceRanges.length === 0) {
+      params.delete("priceRanges");
+    } else {
+      params.set("priceRanges", selectedPriceRanges.join(","));
+    }
+
+    setSearchParams(params, { replace: true });
+  }, [selectedCategoryId, selectedPriceRanges, setSearchParams]);
+
+  const filteredAccounts = useMemo(() => {
+    let result = accounts.filter(account => account.status === GameAccountStatus.AVAILABLE);
+
+    if (selectedCategoryId !== "all") {
+      result = result.filter(account => account.categoryId === selectedCategoryId);
+    }
+
+    if (selectedPriceRanges.length > 0) {
+      result = result.filter(account => selectedPriceRanges.some(rangeId => inPriceRange(account.price, rangeId)));
+    }
+
+    return result;
+  }, [accounts, selectedCategoryId, selectedPriceRanges]);
+
+  const selectedCategoryName =
+    selectedCategoryId === "all" ? "Tất cả tài khoản" : (categoryMap[selectedCategoryId] ?? "Danh mục");
+
+  const handlePriceRangeToggle = (rangeId: string) => {
+    setSelectedPriceRanges(prev => {
+      if (prev.includes(rangeId)) {
+        return prev.filter(item => item !== rangeId);
+      }
+      return [...prev, rangeId];
+    });
+  };
 
   const cardData = useMemo(
     () =>
@@ -83,15 +154,19 @@ export function ShopPage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <aside className="lg:w-64 flex-shrink-0">
-            <FilterSidebar selectedGame={selectedGame} onGameChange={setSelectedGame} />
+            <FilterSidebar
+              categories={categories}
+              selectedCategoryId={selectedCategoryId}
+              onCategoryChange={setSelectedCategoryId}
+              selectedPriceRanges={selectedPriceRanges}
+              onPriceRangeToggle={handlePriceRangeToggle}
+            />
           </aside>
 
           {/* Main Content */}
           <main className="flex-1">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800">
-                {selectedGame === "Tất cả" ? "Tất cả tài khoản" : selectedGame}
-              </h2>
+              <h2 className="text-2xl font-semibold text-gray-800">{selectedCategoryName}</h2>
               <p className="text-gray-600">{cardData.length} tài khoản</p>
             </div>
 

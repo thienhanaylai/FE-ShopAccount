@@ -27,6 +27,7 @@ import { SupportManagement } from "./pages/admin/SupportManagement";
 
 import { useEffect, useState } from "react";
 import { walletService } from "./services";
+import { WALLET_BALANCE_UPDATED_EVENT } from "./utils/walletEvents";
 
 function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin, isAuthenticated } = useAuth();
@@ -58,13 +59,16 @@ function AppContent() {
   const displayedBalance = user ? balance : 0;
 
   useEffect(() => {
-    if (!user) {
-      return;
-    }
-
     let isMounted = true;
 
     async function getBalance() {
+      if (!user) {
+        if (isMounted) {
+          setBalance(0);
+        }
+        return;
+      }
+
       try {
         const res = await walletService.getBalance();
         if (isMounted) {
@@ -77,10 +81,17 @@ function AppContent() {
       }
     }
 
-    getBalance();
+    const handleWalletBalanceUpdated = () => {
+      void getBalance();
+    };
+
+    void getBalance();
+
+    window.addEventListener(WALLET_BALANCE_UPDATED_EVENT, handleWalletBalanceUpdated);
 
     return () => {
       isMounted = false;
+      window.removeEventListener(WALLET_BALANCE_UPDATED_EVENT, handleWalletBalanceUpdated);
     };
   }, [user]);
 
