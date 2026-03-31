@@ -1,16 +1,4 @@
-import {
-  X,
-  Copy,
-  Download,
-  CheckCircle,
-  Eye,
-  EyeOff,
-  Gamepad2,
-  User,
-  Lock,
-  Mail,
-  Shield,
-} from "lucide-react";
+import { X, Copy, Download, CheckCircle, Eye, EyeOff, Gamepad2, User, Lock, Mail, Shield } from "lucide-react";
 import { useState } from "react";
 
 interface UserOrder {
@@ -85,7 +73,7 @@ Giá: ${order.amount.toLocaleString("vi-VN")}đ
 - Không chia sẻ thông tin cho người khác
 - Liên hệ hỗ trợ nếu có vấn đề
 
-GameAccount.vn - Uy tín #1 Việt Nam
+Shopaccgiare.tech - Uy tín #1 Việt Nam
     `.trim();
 
     const blob = new Blob([info], { type: "text/plain" });

@@ -1,120 +1,522 @@
-import { Users, Gamepad2, ShoppingCart, DollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
+import { Users, Gamepad2, ShoppingCart, DollarSign, TrendingUp, TrendingDown, Clock, RefreshCw } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import {
+  gameAccountService,
+  gameCategoryService,
+  orderService,
+  userService,
+  type GameAccount,
+  GameAccountStatus,
+  type GameCategory,
+  type Order,
+  OrderStatus,
+  type User,
+} from "../../services";
+import ErrorHandler from "../../utils/errorHandler";
+
+type TrendDirection = "up" | "down";
+
+type NormalizedList<T> = {
+  items: T[];
+  total: number;
+  totalPages: number;
+};
+
+type TrendData = {
+  change: string;
+  trend: TrendDirection;
+};
+
+type StatCard = {
+  label: string;
+  value: string;
+  change: string;
+  trend: TrendDirection;
+  icon: typeof Users;
+  color: string;
+};
+
+type DateRange = {
+  start: Date;
+  end: Date;
+};
+
+const CHART_COLORS = ["#FF2E63", "#08D9D6", "#10B981", "#F59E0B", "#6366F1"];
+const LIST_LIMIT = 100;
+const MAX_PAGES = 20;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeListPayload<T>(payload: unknown): NormalizedList<T> {
+  if (Array.isArray(payload)) {
+    return {
+      items: payload as T[],
+      total: payload.length,
+      totalPages: 1,
+    };
+  }
+
+  if (isRecord(payload)) {
+    const rawData = payload.data;
+    const rawPagination = payload.pagination;
+
+    const items = Array.isArray(rawData) ? (rawData as T[]) : [];
+    const total = isRecord(rawPagination) ? toNumber(rawPagination.total, items.length) : items.length;
+    const totalPages = isRecord(rawPagination) ? Math.max(1, toNumber(rawPagination.totalPages, 1)) : 1;
+
+    return {
+      items,
+      total,
+      totalPages,
+    };
+  }
+
+  return {
+    items: [],
+    total: 0,
+    totalPages: 1,
+  };
+}
+
+async function fetchAllPages<T>(
+  loader: (page: number, limit: number) => Promise<unknown>,
+  limit = LIST_LIMIT,
+  maxPages = MAX_PAGES,
+): Promise<NormalizedList<T>> {
+  const firstPayload = await loader(1, limit);
+  const firstPage = normalizeListPayload<T>(firstPayload);
+
+  let items = [...firstPage.items];
+  const totalPages = Math.min(firstPage.totalPages, maxPages);
+
+  if (totalPages > 1) {
+    const restPagesPayload = await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => loader(index + 2, limit)));
+
+    for (const payload of restPagesPayload) {
+      items = items.concat(normalizeListPayload<T>(payload).items);
+    }
+  }
+
+  return {
+    items,
+    total: firstPage.total || items.length,
+    totalPages,
+  };
+}
+
+function buildDayRange(baseDate: Date): DateRange {
+  const start = new Date(baseDate);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(baseDate);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+function buildMonthRange(baseDate: Date): DateRange {
+  const start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1, 0, 0, 0, 0);
+  const end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0, 23, 59, 59, 999);
+  return { start, end };
+}
+
+function addMonths(baseDate: Date, amount: number): Date {
+  return new Date(baseDate.getFullYear(), baseDate.getMonth() + amount, 1, 0, 0, 0, 0);
+}
+
+function isWithinRange(dateValue: string | undefined, range: DateRange): boolean {
+  if (!dateValue) return false;
+  const time = new Date(dateValue).getTime();
+  if (Number.isNaN(time)) return false;
+
+  return time >= range.start.getTime() && time <= range.end.getTime();
+}
+
+function calculateTrend(current: number, previous: number): TrendData {
+  if (previous === 0 && current === 0) {
+    return { change: "0.0%", trend: "up" };
+  }
+
+  if (previous === 0) {
+    return { change: "+100.0%", trend: "up" };
+  }
+
+  const percent = ((current - previous) / Math.abs(previous)) * 100;
+  const trend: TrendDirection = percent >= 0 ? "up" : "down";
+  const sign = percent > 0 ? "+" : "";
+
+  return {
+    change: `${sign}${percent.toFixed(1)}%`,
+    trend,
+  };
+}
+
+function formatCurrency(value: number): string {
+  return `${Math.round(value).toLocaleString("vi-VN")}đ`;
+}
+
+function formatCompactCurrency(value: number): string {
+  return new Intl.NumberFormat("vi-VN", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(Math.round(value));
+}
+
+function formatRelativeTime(value: string): string {
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return "--";
+
+  const diff = Date.now() - time;
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diff < minute) return "Vừa xong";
+  if (diff < hour) return `${Math.max(1, Math.floor(diff / minute))} phút trước`;
+  if (diff < day) return `${Math.max(1, Math.floor(diff / hour))} giờ trước`;
+
+  return `${Math.max(1, Math.floor(diff / day))} ngày trước`;
+}
+
+function getStatusColor(status: OrderStatus): string {
+  switch (status) {
+    case OrderStatus.PAID:
+    case OrderStatus.COMPLETED:
+      return "bg-green-100 text-green-700";
+    case OrderStatus.PENDING:
+      return "bg-yellow-100 text-yellow-700";
+    case OrderStatus.CANCELLED:
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+}
+
+function getStatusText(status: OrderStatus): string {
+  switch (status) {
+    case OrderStatus.PAID:
+      return "Đã thanh toán";
+    case OrderStatus.COMPLETED:
+      return "Hoàn thành";
+    case OrderStatus.PENDING:
+      return "Chờ xử lý";
+    case OrderStatus.CANCELLED:
+      return "Đã hủy";
+    default:
+      return status;
+  }
+}
 
 export function AdminDashboard() {
-  const stats = [
-    { 
-      label: 'Tổng người dùng', 
-      value: '12,543', 
-      change: '+12.5%', 
-      trend: 'up',
-      icon: Users,
-      color: 'bg-[#FF2E63]'
-    },
-    { 
-      label: 'Tài khoản đang bán', 
-      value: '1,234', 
-      change: '+8.2%', 
-      trend: 'up',
-      icon: Gamepad2,
-      color: 'bg-[#08D9D6]'
-    },
-    { 
-      label: 'Đơn hàng hôm nay', 
-      value: '89', 
-      change: '-3.1%', 
-      trend: 'down',
-      icon: ShoppingCart,
-      color: 'bg-green-500'
-    },
-    { 
-      label: 'Doanh thu tháng này', 
-      value: '₫245M', 
-      change: '+18.7%', 
-      trend: 'up',
-      icon: DollarSign,
-      color: 'bg-yellow-500'
-    },
-  ];
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const revenueData = [
-    { month: 'T1', revenue: 45, orders: 120 },
-    { month: 'T2', revenue: 52, orders: 145 },
-    { month: 'T3', revenue: 61, orders: 168 },
-    { month: 'T4', revenue: 58, orders: 152 },
-    { month: 'T5', revenue: 72, orders: 189 },
-    { month: 'T6', revenue: 85, orders: 223 },
-  ];
+  const [users, setUsers] = useState<User[]>([]);
+  const [accounts, setAccounts] = useState<GameAccount[]>([]);
+  const [categories, setCategories] = useState<GameCategory[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  const gameDistribution = [
-    { name: 'Liên Minh', value: 35 },
-    { name: 'PUBG', value: 25 },
-    { name: 'Genshin', value: 20 },
-    { name: 'FIFA', value: 12 },
-    { name: 'Khác', value: 8 },
-  ];
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [availableAccountsTotal, setAvailableAccountsTotal] = useState(0);
+  const [todayOrdersTotal, setTodayOrdersTotal] = useState(0);
 
-  const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+  const loadDashboard = useCallback(async () => {
+    setErrorMessage(null);
 
-  const recentOrders = [
-    { id: '#12345', user: 'Nguyễn Văn A', game: 'Liên Minh Huyền Thoại', price: 2500000, status: 'completed', time: '5 phút trước' },
-    { id: '#12344', user: 'Trần Thị B', game: 'PUBG Mobile', price: 1800000, status: 'pending', time: '12 phút trước' },
-    { id: '#12343', user: 'Lê Văn C', game: 'Genshin Impact', price: 3200000, status: 'completed', time: '25 phút trước' },
-    { id: '#12342', user: 'Phạm Thị D', game: 'FIFA Online 4', price: 1500000, status: 'processing', time: '1 giờ trước' },
-    { id: '#12341', user: 'Hoàng Văn E', game: 'Minecraft', price: 450000, status: 'completed', time: '2 giờ trước' },
-  ];
+    try {
+      const now = new Date();
+      const todayRange = buildDayRange(now);
+      const sixMonthsAgo = addMonths(now, -5);
+      const sixMonthsRange: DateRange = {
+        start: new Date(sixMonthsAgo.getFullYear(), sixMonthsAgo.getMonth(), 1, 0, 0, 0, 0),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
+      };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-700';
-      case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'processing': return 'bg-blue-100 text-blue-700';
-      default: return 'bg-gray-100 text-gray-700';
+      const [userResult, accountResult, categoryPayload, orderResult, availablePayload, todayOrdersPayload] = await Promise.all([
+        fetchAllPages<User>((page, limit) => userService.getList({ page, limit }) as Promise<unknown>),
+        fetchAllPages<GameAccount>((page, limit) => gameAccountService.getList({ page, limit }) as Promise<unknown>),
+        gameCategoryService.getList({ page: 1, limit: 100 }) as Promise<unknown>,
+        fetchAllPages<Order>(
+          (page, limit) =>
+            orderService.getList({
+              page,
+              limit,
+              fromDate: sixMonthsRange.start.toISOString(),
+              toDate: sixMonthsRange.end.toISOString(),
+            }) as Promise<unknown>,
+        ),
+        gameAccountService.getList({ page: 1, limit: 1, status: GameAccountStatus.AVAILABLE }) as Promise<unknown>,
+        orderService.getList({
+          page: 1,
+          limit: 1,
+          fromDate: todayRange.start.toISOString(),
+          toDate: todayRange.end.toISOString(),
+        }) as Promise<unknown>,
+      ]);
+
+      const normalizedCategories = normalizeListPayload<GameCategory>(categoryPayload);
+      const normalizedAvailable = normalizeListPayload<GameAccount>(availablePayload);
+      const normalizedTodayOrders = normalizeListPayload<Order>(todayOrdersPayload);
+
+      setUsers(userResult.items);
+      setAccounts(accountResult.items);
+      setCategories(normalizedCategories.items);
+      setOrders(orderResult.items);
+
+      setTotalUsers(userResult.total);
+      setAvailableAccountsTotal(normalizedAvailable.total);
+
+      const fallbackTodayCount = orderResult.items.filter(order => isWithinRange(order.createdAt, todayRange)).length;
+      setTodayOrdersTotal(normalizedTodayOrders.total || fallbackTodayCount);
+    } catch (error) {
+      setUsers([]);
+      setAccounts([]);
+      setCategories([]);
+      setOrders([]);
+      setTotalUsers(0);
+      setAvailableAccountsTotal(0);
+      setTodayOrdersTotal(0);
+      setErrorMessage(ErrorHandler.getErrorMessage(error));
     }
+  }, []);
+
+  useEffect(() => {
+    const run = async () => {
+      setIsLoading(true);
+      await loadDashboard();
+      setIsLoading(false);
+    };
+
+    void run();
+  }, [loadDashboard]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadDashboard();
+    setIsRefreshing(false);
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed': return 'Hoàn thành';
-      case 'pending': return 'Chờ xử lý';
-      case 'processing': return 'Đang xử lý';
-      default: return status;
+  const categoryNameById = useMemo(() => {
+    return categories.reduce<Record<string, string>>((acc, category) => {
+      acc[category.id] = category.name;
+      return acc;
+    }, {});
+  }, [categories]);
+
+  const userNameById = useMemo(() => {
+    return users.reduce<Record<string, string>>((acc, user) => {
+      acc[user.id] = user.username || user.email || user.id;
+      return acc;
+    }, {});
+  }, [users]);
+
+  const accountById = useMemo(() => {
+    return accounts.reduce<Record<string, GameAccount>>((acc, account) => {
+      acc[account.id] = account;
+      return acc;
+    }, {});
+  }, [accounts]);
+
+  const revenueData = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, index) => addMonths(now, index - 5));
+
+    return months.map(date => {
+      const range = buildMonthRange(date);
+      const monthOrders = orders.filter(order => isWithinRange(order.createdAt, range));
+      const revenue = monthOrders
+        .filter(order => order.status === OrderStatus.PAID || order.status === OrderStatus.COMPLETED)
+        .reduce((sum, order) => sum + toNumber(order.price), 0);
+
+      return {
+        month: `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getFullYear()).slice(-2)}`,
+        revenue: Number((revenue / 1_000_000).toFixed(2)),
+        orders: monthOrders.length,
+      };
+    });
+  }, [orders]);
+
+  const gameDistribution = useMemo(() => {
+    const countByCategory = new Map<string, number>();
+
+    for (const account of accounts) {
+      const key = account.categoryId || "unknown";
+      countByCategory.set(key, (countByCategory.get(key) || 0) + 1);
     }
-  };
+
+    const sorted = Array.from(countByCategory.entries())
+      .map(([categoryId, value]) => ({
+        name: categoryNameById[categoryId] || "Khác",
+        value,
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    if (sorted.length <= 5) return sorted;
+
+    const top = sorted.slice(0, 4);
+    const otherValue = sorted.slice(4).reduce((sum, item) => sum + item.value, 0);
+    return [...top, { name: "Khác", value: otherValue }];
+  }, [accounts, categoryNameById]);
+
+  const recentOrders = useMemo(() => {
+    return [...orders]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 6)
+      .map(order => {
+        const userName = order.user?.username || order.user?.email || userNameById[order.userId] || order.userId;
+        const account = order.gameAccount || accountById[order.gameAccountId];
+        const gameName = account?.categoryId ? categoryNameById[account.categoryId] || account.categoryId : order.gameAccountId;
+
+        return {
+          id: order.id,
+          user: userName,
+          game: gameName,
+          price: toNumber(order.price),
+          status: order.status,
+          time: formatRelativeTime(order.createdAt),
+        };
+      });
+  }, [orders, userNameById, accountById, categoryNameById]);
+
+  const stats = useMemo<StatCard[]>(() => {
+    const now = new Date();
+    const currentMonth = buildMonthRange(now);
+    const previousMonth = buildMonthRange(addMonths(now, -1));
+    const yesterday = buildDayRange(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+
+    const usersThisMonth = users.filter(user => isWithinRange(user.createdAt, currentMonth)).length;
+    const usersLastMonth = users.filter(user => isWithinRange(user.createdAt, previousMonth)).length;
+
+    const availableThisMonth = accounts.filter(
+      account => account.status === GameAccountStatus.AVAILABLE && isWithinRange(account.createdAt, currentMonth),
+    ).length;
+    const availableLastMonth = accounts.filter(
+      account => account.status === GameAccountStatus.AVAILABLE && isWithinRange(account.createdAt, previousMonth),
+    ).length;
+
+    const yesterdayOrders = orders.filter(order => isWithinRange(order.createdAt, yesterday)).length;
+
+    const revenueThisMonth = orders
+      .filter(
+        order =>
+          isWithinRange(order.createdAt, currentMonth) &&
+          (order.status === OrderStatus.PAID || order.status === OrderStatus.COMPLETED),
+      )
+      .reduce((sum, order) => sum + toNumber(order.price), 0);
+
+    const revenueLastMonth = orders
+      .filter(
+        order =>
+          isWithinRange(order.createdAt, previousMonth) &&
+          (order.status === OrderStatus.PAID || order.status === OrderStatus.COMPLETED),
+      )
+      .reduce((sum, order) => sum + toNumber(order.price), 0);
+
+    const usersTrend = calculateTrend(usersThisMonth, usersLastMonth);
+    const availableTrend = calculateTrend(availableThisMonth, availableLastMonth);
+    const ordersTrend = calculateTrend(todayOrdersTotal, yesterdayOrders);
+    const revenueTrend = calculateTrend(revenueThisMonth, revenueLastMonth);
+
+    return [
+      {
+        label: "Tổng người dùng",
+        value: totalUsers.toLocaleString("vi-VN"),
+        change: usersTrend.change,
+        trend: usersTrend.trend,
+        icon: Users,
+        color: "bg-[#FF2E63]",
+      },
+      {
+        label: "Tài khoản đang bán",
+        value: availableAccountsTotal.toLocaleString("vi-VN"),
+        change: availableTrend.change,
+        trend: availableTrend.trend,
+        icon: Gamepad2,
+        color: "bg-[#08D9D6]",
+      },
+      {
+        label: "Đơn hàng hôm nay",
+        value: todayOrdersTotal.toLocaleString("vi-VN"),
+        change: ordersTrend.change,
+        trend: ordersTrend.trend,
+        icon: ShoppingCart,
+        color: "bg-green-500",
+      },
+      {
+        label: "Doanh thu tháng này",
+        value: formatCompactCurrency(revenueThisMonth),
+        change: revenueTrend.change,
+        trend: revenueTrend.trend,
+        icon: DollarSign,
+        color: "bg-yellow-500",
+      },
+    ];
+  }, [users, accounts, orders, totalUsers, availableAccountsTotal, todayOrdersTotal]);
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Tổng quan hệ thống GameAccount.vn</p>
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="mb-2 text-3xl font-bold text-gray-800">Dashboard</h1>
+          <p className="text-gray-600">Tổng quan hệ thống Shopaccgiare.tech theo dữ liệu API thời gian thực</p>
+        </div>
+        <button
+          onClick={() => void handleRefresh()}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isRefreshing || isLoading}
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          Làm mới
+        </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`${stat.color} w-12 h-12 rounded-lg flex items-center justify-center`}>
-                <stat.icon className="w-6 h-6 text-white" />
+      {errorMessage && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{errorMessage}</div>
+      )}
+
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map(stat => (
+          <div key={stat.label} className="rounded-xl bg-white p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <div className={`${stat.color} flex h-12 w-12 items-center justify-center rounded-lg`}>
+                <stat.icon className="h-6 w-6 text-white" />
               </div>
-              <div className={`flex items-center gap-1 text-sm ${
-                stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {stat.trend === 'up' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <div className={`flex items-center gap-1 text-sm ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}>
+                {stat.trend === "up" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                 <span>{stat.change}</span>
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-800 mb-1">{stat.value}</p>
+            <p className="mb-1 text-2xl font-bold text-gray-800">{isLoading ? "..." : stat.value}</p>
             <p className="text-sm text-gray-600">{stat.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Revenue Chart */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-6">Doanh thu & Đơn hàng</h2>
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl bg-white p-6 shadow-lg">
+          <h2 className="mb-6 text-xl font-bold text-gray-800">Doanh thu và đơn hàng 6 tháng gần nhất</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -123,15 +525,31 @@ export function AdminDashboard() {
               <YAxis yAxisId="right" orientation="right" />
               <Tooltip />
               <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#FF2E63" name="Doanh thu (Triệu)" strokeWidth={3} dot={{ fill: '#FF2E63' }} activeDot={{ r: 8 }} />
-              <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#08D9D6" name="Đơn hàng" strokeWidth={3} dot={{ fill: '#08D9D6' }} />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="revenue"
+                stroke="#FF2E63"
+                name="Doanh thu (triệu)"
+                strokeWidth={3}
+                dot={{ fill: "#FF2E63" }}
+                activeDot={{ r: 8 }}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="orders"
+                stroke="#08D9D6"
+                name="Đơn hàng"
+                strokeWidth={3}
+                dot={{ fill: "#08D9D6" }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Game Distribution */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-6">Phân bố game</h2>
+        <div className="rounded-xl bg-white p-6 shadow-lg">
+          <h2 className="mb-6 text-xl font-bold text-gray-800">Phân bố tài khoản theo game</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -139,13 +557,13 @@ export function AdminDashboard() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) => `${name} ${typeof percent === "number" ? (percent * 100).toFixed(0) : 0}%`}
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
               >
                 {gameDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`${entry.name}-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -154,44 +572,57 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Recent Orders */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="rounded-xl bg-white p-6 shadow-lg">
+        <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-800">Đơn hàng gần đây</h2>
-          <button className="text-[#FF2E63] hover:text-[#d9254f] font-semibold transition-colors">
+          <Link to="/admin/orders" className="font-semibold text-[#FF2E63] transition-colors hover:text-[#d9254f]">
             Xem tất cả →
-          </button>
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Mã đơn</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Khách hàng</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Game</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Giá trị</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Trạng thái</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Thời gian</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Mã đơn</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Khách hàng</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Game</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Giá trị</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Trạng thái</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Thời gian</th>
               </tr>
             </thead>
             <tbody>
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium text-[#FF2E63]">{order.id}</td>
-                  <td className="py-3 px-4">{order.user}</td>
-                  <td className="py-3 px-4">{order.game}</td>
-                  <td className="py-3 px-4 font-semibold">{order.price.toLocaleString('vi-VN')}đ</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
-                      {getStatusText(order.status)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-gray-600 text-sm flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {order.time}
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
+                    Đang tải dữ liệu dashboard...
                   </td>
                 </tr>
-              ))}
+              ) : recentOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
+                    Chưa có đơn hàng nào trong dữ liệu hiện tại.
+                  </td>
+                </tr>
+              ) : (
+                recentOrders.map(order => (
+                  <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-[#FF2E63]">{order.id}</td>
+                    <td className="px-4 py-3">{order.user}</td>
+                    <td className="px-4 py-3">{order.game}</td>
+                    <td className="px-4 py-3 font-semibold">{formatCurrency(order.price)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(order.status)}`}>
+                        {getStatusText(order.status)}
+                      </span>
+                    </td>
+                    <td className="flex items-center gap-1 px-4 py-3 text-sm text-gray-600">
+                      <Clock className="h-4 w-4" />
+                      {order.time}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -852,9 +852,9 @@ Response 200:
 ```json
 {
   "id": "default",
-  "siteName": "GameAccount.vn",
+  "siteName": "Shopaccgiare.tech",
   "siteDescription": "Mua ban tai khoan game uy tin #1 Viet Nam",
-  "contactEmail": "support@gameaccount.vn",
+  "contactEmail": "support@Shopaccgiare.tech",
   "contactPhone": "1900 xxxx",
   "commissionRate": 5,
   "minWithdraw": 100000,

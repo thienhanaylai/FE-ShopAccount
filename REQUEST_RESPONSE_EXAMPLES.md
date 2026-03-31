@@ -1110,16 +1110,16 @@ Response 204: khong co body
 Ban co the them script nay vao tab Tests cua request login:
 
 ```javascript
-pm.test('Login success', function () {
+pm.test("Login success", function () {
   pm.response.to.have.status(200);
 });
 
 const jsonData = pm.response.json();
 if (jsonData.accessToken) {
-  pm.collectionVariables.set('authToken', jsonData.accessToken);
+  pm.collectionVariables.set("authToken", jsonData.accessToken);
 }
 if (jsonData.user && jsonData.user.id) {
-  pm.collectionVariables.set('userId', jsonData.user.id);
+  pm.collectionVariables.set("userId", jsonData.user.id);
 }
 ```
 
@@ -1128,7 +1128,7 @@ Script luu id sau khi tao category/account/order:
 ```javascript
 const jsonData = pm.response.json();
 if (jsonData.id) {
-  pm.collectionVariables.set('gameCategoryId', jsonData.id);
+  pm.collectionVariables.set("gameCategoryId", jsonData.id);
 }
 ```
 
@@ -1235,10 +1235,7 @@ Dau hieu response:
 ```json
 {
   "statusCode": 400,
-  "message": [
-    "email must be an email",
-    "password must be longer than or equal to 6 characters"
-  ],
+  "message": ["email must be an email", "password must be longer than or equal to 6 characters"],
   "error": "Bad Request"
 }
 ```
@@ -1531,9 +1528,9 @@ Response 200:
 ```json
 {
   "id": "default",
-  "siteName": "GameAccount.vn",
+  "siteName": "Shopaccgiare.tech",
   "siteDescription": "Mua ban tai khoan game uy tin #1 Viet Nam",
-  "contactEmail": "support@gameaccount.vn",
+  "contactEmail": "support@Shopaccgiare.tech",
   "contactPhone": "1900 xxxx",
   "commissionRate": 5,
   "minWithdraw": 100000,

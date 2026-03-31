@@ -187,7 +187,7 @@ export function SupportPage() {
         icon: Mail,
         title: "Email",
         description: "Gửi email hỗ trợ",
-        value: "support@gameaccount.vn",
+        value: "support@Shopaccgiare.tech",
         color: "bg-blue-100 text-[#0D4D8B]",
       },
       {
