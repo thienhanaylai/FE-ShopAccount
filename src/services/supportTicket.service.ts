@@ -20,8 +20,12 @@ type LocalUser = {
 };
 
 class SupportTicketService {
+  private getErrorStatus(error: unknown): number | undefined {
+    return (error as { response?: { status?: number } })?.response?.status;
+  }
+
   private shouldUseFallback(error: unknown): boolean {
-    const status = (error as { response?: { status?: number } })?.response?.status;
+    const status = this.getErrorStatus(error);
     if (status === 401 || status === 403 || status === 404) {
       return false;
     }
@@ -182,6 +186,36 @@ class SupportTicketService {
       if (!this.shouldUseFallback(error)) throw error;
 
       const filtered = this.applyFilters(this.readFallbackTickets(), filters);
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      return this.toPaginationResponse(filtered, page, limit);
+    }
+  }
+
+  async getMyTickets(filters?: Omit<SupportTicketFilters, "userId">): Promise<PaginationResponse<SupportTicket>> {
+    try {
+      const response = await axiosService.get<PaginationResponse<SupportTicket>>("/support-tickets/me", {
+        params: filters,
+      });
+      return response.data;
+    } catch (error) {
+      const status = this.getErrorStatus(error);
+      if (status === 404 || status === 405) {
+        const currentUser = this.getCurrentUser();
+        return this.getList({
+          ...filters,
+          userId: currentUser?.id,
+        });
+      }
+
+      if (!this.shouldUseFallback(error)) throw error;
+
+      const currentUser = this.getCurrentUser();
+      const filtered = this.applyFilters(this.readFallbackTickets(), {
+        ...filters,
+        userId: currentUser?.id,
+      });
+
       const page = filters?.page || 1;
       const limit = filters?.limit || 20;
       return this.toPaginationResponse(filtered, page, limit);

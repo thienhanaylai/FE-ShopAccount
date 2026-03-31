@@ -78,7 +78,7 @@ export function SupportPage() {
       setTicketsError(null);
 
       try {
-        const response = await supportTicketService.getList({ page: 1, limit: 5 });
+        const response = await supportTicketService.getMyTickets({ page: 1, limit: 5 });
         if (!cancelled) {
           setMyTickets(response.data || []);
         }
