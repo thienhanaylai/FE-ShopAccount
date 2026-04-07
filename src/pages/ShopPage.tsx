@@ -61,10 +61,6 @@ export function ShopPage() {
           name: category.name,
         }));
 
-        if (selectedCategoryId !== "all" && !mappedCategories[selectedCategoryId]) {
-          setSelectedCategoryId("all");
-        }
-
         setCategoryMap(mappedCategories);
         setCategories(categoryOptions);
         setAccounts(accountsRes.data);
@@ -77,6 +73,14 @@ export function ShopPage() {
 
     fetchShopData();
   }, []);
+
+  useEffect(() => {
+    if (selectedCategoryId === "all") return;
+    if (Object.keys(categoryMap).length === 0) return;
+    if (!categoryMap[selectedCategoryId]) {
+      setSelectedCategoryId("all");
+    }
+  }, [selectedCategoryId, categoryMap]);
 
   useEffect(() => {
     const params = new URLSearchParams();

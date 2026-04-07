@@ -705,8 +705,8 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-3xl rounded-2xl bg-white">
+    <div className="scrollbar-hidden fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center">
+      <div className="scrollbar-hidden my-4 w-full max-w-3xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white">
         <div className="flex items-center justify-between rounded-t-2xl bg-gradient-to-r from-[#252A34] to-[#FF2E63] p-6 text-white shadow-lg">
           <h2 className="text-2xl font-bold">{isCreate ? "Thêm tài khoản game" : "Chỉnh sửa tài khoản game"}</h2>
           <button onClick={onClose} className="rounded-lg p-2 transition hover:bg-white/20">

@@ -3,19 +3,19 @@
 :root {
   --font-size: 16px;
   --background: #ffffff;
-  --foreground: #0D4D8B;
+  --foreground: #0d4d8b;
   --card: #ffffff;
-  --card-foreground: #0D4D8B;
+  --card-foreground: #0d4d8b;
   --popover: #ffffff;
-  --popover-foreground: #0D4D8B;
-  --primary: #F5A65B;
+  --popover-foreground: #0d4d8b;
+  --primary: #f5a65b;
   --primary-foreground: #ffffff;
-  --secondary: #1EA7FD;
-  --secondary-foreground: #0D4D8B;
-  --muted: #EAF4FF;
-  --muted-foreground: #0D4D8B;
-  --accent: #1EA7FD;
-  --accent-foreground: #0D4D8B;
+  --secondary: #1ea7fd;
+  --secondary-foreground: #0d4d8b;
+  --muted: #eaf4ff;
+  --muted-foreground: #0d4d8b;
+  --accent: #1ea7fd;
+  --accent-foreground: #0d4d8b;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
   --border: rgba(37, 42, 52, 0.1);
@@ -24,64 +24,64 @@
   --switch-background: #d1d5db;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #F5A65B;
-  --chart-1: #F5A65B;
-  --chart-2: #1EA7FD;
-  --chart-3: #0D4D8B;
-  --chart-4: #EAF4FF;
-  --chart-5: #F5A65B;
+  --ring: #f5a65b;
+  --chart-1: #f5a65b;
+  --chart-2: #1ea7fd;
+  --chart-3: #0d4d8b;
+  --chart-4: #eaf4ff;
+  --chart-5: #f5a65b;
   --radius: 0.625rem;
-  --sidebar: #0D4D8B;
+  --sidebar: #0d4d8b;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #F5A65B;
+  --sidebar-primary: #f5a65b;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1EA7FD;
-  --sidebar-accent-foreground: #0D4D8B;
+  --sidebar-accent: #1ea7fd;
+  --sidebar-accent-foreground: #0d4d8b;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #F5A65B;
-  
+  --sidebar-ring: #f5a65b;
+
   /* Custom brand colors */
-  --brand-primary: #F5A65B;
-  --brand-secondary: #1EA7FD;
-  --brand-dark: #0D4D8B;
-  --brand-light: #EAF4FF;
+  --brand-primary: #f5a65b;
+  --brand-secondary: #1ea7fd;
+  --brand-dark: #0d4d8b;
+  --brand-light: #eaf4ff;
 }
 
 .dark {
-  --background: #0D4D8B;
+  --background: #0d4d8b;
   --foreground: #ffffff;
-  --card: #0D4D8B;
+  --card: #0d4d8b;
   --card-foreground: #ffffff;
-  --popover: #0D4D8B;
+  --popover: #0d4d8b;
   --popover-foreground: #ffffff;
-  --primary: #F5A65B;
+  --primary: #f5a65b;
   --primary-foreground: #ffffff;
-  --secondary: #1EA7FD;
-  --secondary-foreground: #0D4D8B;
+  --secondary: #1ea7fd;
+  --secondary-foreground: #0d4d8b;
   --muted: #3a404d;
   --muted-foreground: #d1d5db;
-  --accent: #1EA7FD;
+  --accent: #1ea7fd;
   --accent-foreground: #ffffff;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
   --border: rgba(8, 217, 214, 0.2);
   --input: rgba(8, 217, 214, 0.1);
-  --ring: #F5A65B;
+  --ring: #f5a65b;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: #F5A65B;
-  --chart-2: #1EA7FD;
-  --chart-3: #0D4D8B;
-  --chart-4: #EAF4FF;
-  --chart-5: #F5A65B;
-  --sidebar: #0D4D8B;
+  --chart-1: #f5a65b;
+  --chart-2: #1ea7fd;
+  --chart-3: #0d4d8b;
+  --chart-4: #eaf4ff;
+  --chart-5: #f5a65b;
+  --sidebar: #0d4d8b;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #F5A65B;
+  --sidebar-primary: #f5a65b;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1EA7FD;
-  --sidebar-accent-foreground: #0D4D8B;
+  --sidebar-accent: #1ea7fd;
+  --sidebar-accent-foreground: #0d4d8b;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #F5A65B;
+  --sidebar-ring: #f5a65b;
 }
 
 @theme inline {
@@ -123,7 +123,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  
+
   /* Custom brand colors as Tailwind utilities */
   --color-brand-primary: var(--brand-primary);
   --color-brand-secondary: var(--brand-secondary);
@@ -147,7 +147,7 @@
  * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
  */
 @layer base {
-  :where(:not(:has([class*=' text-']), :not(:has([class^='text-'])))) {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
     h1 {
       font-size: var(--text-2xl);
       font-weight: var(--font-weight-medium);
@@ -194,4 +194,15 @@
 
 html {
   font-size: var(--font-size);
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
