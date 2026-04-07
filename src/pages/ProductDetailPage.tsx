@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { AlertCircle, CheckCircle2, ChevronLeft, ImageOff, Loader2, Wallet, XCircle } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
@@ -10,6 +10,9 @@ import ErrorHandler from "../utils/errorHandler";
 
 const FALLBACK_ACCOUNT_IMAGE =
   "https://images.unsplash.com/photo-1511512578047-dfb367046420?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080";
+const SWIPE_THRESHOLD = 40;
+const IMAGE_TRANSITION_MS = 260;
+const IMAGE_SWAP_DELAY_MS = 90;
 
 const STATUS_LABEL: Record<GameAccountStatus, string> = {
   [GameAccountStatus.AVAILABLE]: "Đang bán",
@@ -63,6 +66,7 @@ export function ProductDetailPage() {
 
   const [account, setAccount] = useState<GameAccount | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isMainImageVisible, setIsMainImageVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isBuying, setIsBuying] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -113,11 +117,78 @@ export function ProductDetailPage() {
     return resolveImageUrls(account?.images);
   }, [account?.images]);
 
+  const swipeStartXRef = useRef<number | null>(null);
+  const swipeEndXRef = useRef<number | null>(null);
+  const imageTransitionTimerRef = useRef<number | null>(null);
+
+  const changeImageWithTransition = useCallback(
+    (nextIndex: number) => {
+      if (imageUrls.length <= 1) return;
+
+      const normalizedIndex = (nextIndex + imageUrls.length) % imageUrls.length;
+      if (normalizedIndex === selectedImage) return;
+
+      setIsMainImageVisible(false);
+
+      if (imageTransitionTimerRef.current !== null) {
+        window.clearTimeout(imageTransitionTimerRef.current);
+      }
+
+      imageTransitionTimerRef.current = window.setTimeout(() => {
+        setSelectedImage(normalizedIndex);
+        setIsMainImageVisible(true);
+        imageTransitionTimerRef.current = null;
+      }, IMAGE_SWAP_DELAY_MS);
+    },
+    [imageUrls.length, selectedImage],
+  );
+
+  const goToNextImage = useCallback(() => {
+    changeImageWithTransition(selectedImage + 1);
+  }, [changeImageWithTransition, selectedImage]);
+
+  const goToPrevImage = useCallback(() => {
+    changeImageWithTransition(selectedImage - 1);
+  }, [changeImageWithTransition, selectedImage]);
+
+  const handleImageTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    swipeStartXRef.current = event.touches[0]?.clientX ?? null;
+    swipeEndXRef.current = null;
+  };
+
+  const handleImageTouchMove = (event: TouchEvent<HTMLDivElement>) => {
+    swipeEndXRef.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleImageTouchEnd = () => {
+    if (swipeStartXRef.current === null || swipeEndXRef.current === null) return;
+
+    const distance = swipeStartXRef.current - swipeEndXRef.current;
+    if (Math.abs(distance) < SWIPE_THRESHOLD) return;
+
+    if (distance > 0) {
+      goToNextImage();
+    } else {
+      goToPrevImage();
+    }
+
+    swipeStartXRef.current = null;
+    swipeEndXRef.current = null;
+  };
+
   useEffect(() => {
     if (selectedImage >= imageUrls.length) {
       setSelectedImage(0);
     }
   }, [imageUrls.length, selectedImage]);
+
+  useEffect(() => {
+    return () => {
+      if (imageTransitionTimerRef.current !== null) {
+        window.clearTimeout(imageTransitionTimerRef.current);
+      }
+    };
+  }, []);
 
   const canBuy = account?.status === GameAccountStatus.AVAILABLE;
 
@@ -193,8 +264,8 @@ export function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 py-10">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen bg-gray-100 py-8 lg:py-10">
+        <div className="container mx-auto max-w-7xl px-4">
           <div className="rounded-2xl bg-white shadow-lg p-10 flex items-center justify-center gap-3 text-gray-600">
             <Loader2 className="w-5 h-5 animate-spin" />
             <span>Đang tải chi tiết tài khoản...</span>
@@ -206,8 +277,8 @@ export function ProductDetailPage() {
 
   if (!account) {
     return (
-      <div className="min-h-screen bg-gray-100 py-10">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen bg-gray-100 py-8 lg:py-10">
+        <div className="container mx-auto max-w-7xl px-4">
           <Link to="/shop" className="inline-flex items-center gap-2 text-[#F5A65B] hover:text-[#1EA7FD] mb-5">
             <ChevronLeft className="w-5 h-5" />
             <span>Quay lại cửa hàng</span>
@@ -233,61 +304,112 @@ export function ProductDetailPage() {
   const mainImage = imageUrls[selectedImage] ?? FALLBACK_ACCOUNT_IMAGE;
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gray-100 py-8 lg:py-10">
+      <div className="container mx-auto max-w-7xl px-4">
         <Link to="/shop" className="inline-flex items-center gap-2 text-[#F5A65B] hover:text-[#1EA7FD] mb-6">
           <ChevronLeft className="w-5 h-5" />
           <span>Quay lại cửa hàng</span>
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1.12fr)_minmax(390px,0.88fr)] xl:grid-cols-[minmax(0,1.18fr)_minmax(430px,0.82fr)]">
           <div>
-            <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+            <div
+              className="relative rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-lg [touch-action:pan-y]"
+              onTouchStart={handleImageTouchStart}
+              onTouchMove={handleImageTouchMove}
+              onTouchEnd={handleImageTouchEnd}
+            >
               {mainImage ? (
-                <img src={mainImage} alt={account.username} className="w-full h-[340px] sm:h-[420px] object-cover" />
+                <img
+                  src={mainImage}
+                  alt={account.username}
+                  className={`w-full aspect-[16/10] xl:aspect-[16/9] object-cover transition-all ease-out ${
+                    isMainImageVisible ? "opacity-100 scale-100" : "opacity-0 scale-[1.015]"
+                  }`}
+                  style={{ transitionDuration: `${IMAGE_TRANSITION_MS}ms` }}
+                />
               ) : (
-                <div className="w-full h-[340px] sm:h-[420px] flex flex-col items-center justify-center text-gray-500 bg-gray-50">
+                <div
+                  className={`w-full aspect-[16/10] xl:aspect-[16/9] flex flex-col items-center justify-center text-gray-500 bg-gray-50 transition-opacity ease-out ${
+                    isMainImageVisible ? "opacity-100" : "opacity-0"
+                  }`}
+                  style={{ transitionDuration: `${IMAGE_TRANSITION_MS}ms` }}
+                >
                   <ImageOff className="w-8 h-8 mb-2" />
                   <span>Không có ảnh</span>
                 </div>
               )}
+
+              {imageUrls.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goToPrevImage}
+                    aria-label="Ảnh trước"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2.5 text-white transition hover:bg-black/60"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToNextImage}
+                    aria-label="Ảnh tiếp theo"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2.5 text-white transition hover:bg-black/60"
+                  >
+                    <ChevronLeft className="h-5 w-5 rotate-180" />
+                  </button>
+                </>
+              )}
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-4">
+            <div className="mt-3 grid max-w-[620px] grid-cols-5 gap-2 md:max-w-[700px] md:grid-cols-6 lg:max-w-[620px] lg:grid-cols-5 xl:max-w-[700px]">
               {imageUrls.map((image, index) => (
                 <button
                   key={`${image}-${index}`}
                   type="button"
-                  onClick={() => setSelectedImage(index)}
+                  onClick={() => changeImageWithTransition(index)}
                   className={`rounded-xl overflow-hidden border-2 transition ${
                     selectedImage === index ? "border-[#0D4D8B] shadow" : "border-transparent hover:border-gray-300"
                   }`}
                 >
-                  <img src={image} alt={`${account.username}-${index + 1}`} className="w-full h-24 object-cover" />
+                  <img src={image} alt={`${account.username}-${index + 1}`} className="w-full aspect-[16/8] object-cover" />
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg xl:p-7">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-4xl font-bold text-gray-800 leading-tight">{account.username}</h1>
-                  <p className="mt-2 text-2xl text-[#D4A15F] font-semibold">{account.rank || "Chưa cập nhật rank"}</p>
+                  <h1 className="text-2xl font-bold leading-tight text-gray-800 md:text-3xl xl:text-[2rem]">
+                    {account.username}
+                  </h1>
+                  <p className="mt-2 text-lg font-semibold text-[#D4A15F] md:text-xl">{account.rank || "Chưa cập nhật rank"}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${STATUS_CLASS[account.status]}`}>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold md:text-sm ${STATUS_CLASS[account.status]}`}>
                   {STATUS_LABEL[account.status]}
                 </span>
               </div>
 
-              <p className="mt-5 text-5xl font-extrabold text-red-600">{formatPrice(account.price)}</p>
+              <p className="mt-6 text-3xl font-extrabold text-red-600 md:text-4xl">{formatPrice(account.price)}</p>
+
+              <div className="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">ID tài khoản</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-gray-800 md:text-base">{account.id}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Cấp độ</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-800 md:text-base">{account.level ?? "-"}</p>
+                </div>
+              </div>
 
               <button
                 type="button"
                 onClick={() => void handleBuyNow()}
                 disabled={isBuying || !canBuy}
-                className="mt-6 w-full rounded-xl bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] py-3 text-white text-xl font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-6 w-full rounded-xl bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] py-3 text-lg font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isBuying ? "Đang xử lý..." : canBuy ? "Mua ngay" : "Không thể mua"}
               </button>
@@ -298,7 +420,7 @@ export function ProductDetailPage() {
                 </div>
               )}
 
-              <div className="mt-5 border-t border-gray-100 pt-5 text-[15px] text-gray-600 space-y-1">
+              <div className="mt-5 space-y-1 border-t border-gray-100 pt-5 text-sm text-gray-600 md:text-[15px]">
                 <p>Danh mục: {account.categoryId}</p>
                 <p>Cập nhật: {formatDateTime(account.updatedAt)}</p>
               </div>
@@ -306,38 +428,42 @@ export function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mt-8">
-          <h2 className="text-4xl font-bold text-gray-800 mb-8">Thông tin chi tiết</h2>
+        <div className="mt-8 rounded-2xl border border-gray-100 bg-white p-4 shadow-lg md:p-5 xl:p-6">
+          <h2 className="mb-4 text-xl font-bold text-gray-800 md:text-2xl">Thông tin chi tiết</h2>
 
-          <div className="mb-10">
-            <h3 className="text-3xl font-semibold text-gray-800 mb-4">Mô tả</h3>
-            <p className="text-2xl text-gray-600 leading-relaxed whitespace-pre-line">
+          <div className="mb-6">
+            <h3 className="mb-2 text-lg font-semibold text-gray-800 md:text-xl">Mô tả</h3>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600 md:text-base">
               {account.description || "Người bán chưa thêm mô tả cho tài khoản này."}
             </p>
           </div>
 
           <div>
-            <h3 className="text-3xl font-semibold text-gray-800 mb-5">Chi tiết tài khoản</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-                <span className="text-2xl text-gray-600">ID tài khoản:</span>
-                <span className="text-2xl font-semibold text-gray-800">{account.id}</span>
+            <h3 className="mb-3 text-lg font-semibold text-gray-800 md:text-xl">Chi tiết tài khoản</h3>
+            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-3">
+              <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+                <span className="text-xs text-gray-600 md:text-sm">ID tài khoản:</span>
+                <span className="max-w-[60%] break-all text-right text-xs font-semibold text-gray-800 md:text-sm">
+                  {account.id}
+                </span>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-                <span className="text-2xl text-gray-600">Cấp độ:</span>
-                <span className="text-2xl font-semibold text-gray-800">{account.level ?? "-"}</span>
+              <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+                <span className="text-xs text-gray-600 md:text-sm">Cấp độ:</span>
+                <span className="text-xs font-semibold text-gray-800 md:text-sm">{account.level ?? "-"}</span>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-                <span className="text-2xl text-gray-600">Rank:</span>
-                <span className="text-2xl font-semibold text-gray-800">{account.rank || "-"}</span>
+              <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+                <span className="text-xs text-gray-600 md:text-sm">Rank:</span>
+                <span className="text-xs font-semibold text-gray-800 md:text-sm">{account.rank || "-"}</span>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-                <span className="text-2xl text-gray-600">Trạng thái:</span>
-                <span className="text-2xl font-semibold text-gray-800">{account.status}</span>
+              <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+                <span className="text-xs text-gray-600 md:text-sm">Trạng thái:</span>
+                <span className="text-xs font-semibold text-gray-800 md:text-sm">{account.status}</span>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 md:col-span-2">
-                <span className="text-2xl text-gray-600">Email:</span>
-                <span className="text-2xl font-semibold text-gray-800">{account.email}</span>
+              <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3 md:col-span-2">
+                <span className="text-xs text-gray-600 md:text-sm">Email:</span>
+                <span className="max-w-[65%] break-all text-right text-xs font-semibold text-gray-800 md:text-sm">
+                  {account.email}
+                </span>
               </div>
             </div>
           </div>
