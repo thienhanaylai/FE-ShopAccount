@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
+import { Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { axiosService } from "../../services";
 
 interface DepositItem {
@@ -42,8 +42,7 @@ export function DepositsManagement() {
           status: item.status || "SUCCESS",
           transactionId: item.id,
           requestDate: item.createdAt,
-          completedDate:
-            item.status === "SUCCESS" ? item.updatedAt || item.createdAt : null,
+          completedDate: item.status === "SUCCESS" ? item.updatedAt || item.createdAt : null,
         }));
 
         setDeposits(mappedDeposits);
@@ -115,7 +114,7 @@ export function DepositsManagement() {
   };
 
   const filteredDeposits = useMemo(() => {
-    return deposits.filter((deposit) => {
+    return deposits.filter(deposit => {
       const matchesSearch =
         deposit.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         deposit.transactionId.toLowerCase().includes(searchQuery.toLowerCase());
@@ -129,40 +128,31 @@ export function DepositsManagement() {
               ? "pending"
               : deposit.status.toLowerCase();
 
-      const matchesStatus =
-        filterStatus === "all" || normalizedStatus === filterStatus;
+      const matchesStatus = filterStatus === "all" || normalizedStatus === filterStatus;
 
       return matchesSearch && matchesStatus;
     });
   }, [deposits, searchQuery, filterStatus]);
 
   const totalCompleted = deposits
-    .filter((d) => d.status === "SUCCESS" || d.status === "completed")
+    .filter(d => d.status === "SUCCESS" || d.status === "completed")
     .reduce((sum, d) => sum + d.amount, 0);
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Lịch sử nạp tiền
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Lịch sử nạp tiền</h1>
           <p className="text-gray-600">Tổng số: {deposits.length} giao dịch</p>
         </div>
 
         <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-4 rounded-xl">
           <p className="text-sm opacity-90">Tổng nạp thành công</p>
-          <p className="text-2xl font-bold">
-            {totalCompleted.toLocaleString("vi-VN")}đ
-          </p>
+          <p className="text-2xl font-bold">{totalCompleted.toLocaleString("vi-VN")}đ</p>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -170,9 +160,7 @@ export function DepositsManagement() {
             <p className="text-gray-600">Chờ xử lý</p>
             <Clock className="w-5 h-5 text-yellow-500" />
           </div>
-          <p className="text-2xl font-bold text-gray-800">
-            {deposits.filter((d) => d.status === "PENDING").length}
-          </p>
+          <p className="text-2xl font-bold text-gray-800">{deposits.filter(d => d.status === "PENDING").length}</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -180,9 +168,7 @@ export function DepositsManagement() {
             <p className="text-gray-600">Đang xử lý</p>
             <Clock className="w-5 h-5 text-blue-500" />
           </div>
-          <p className="text-2xl font-bold text-gray-800">
-            {deposits.filter((d) => d.status === "processing").length}
-          </p>
+          <p className="text-2xl font-bold text-gray-800">{deposits.filter(d => d.status === "processing").length}</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -191,11 +177,7 @@ export function DepositsManagement() {
             <CheckCircle className="w-5 h-5 text-green-500" />
           </div>
           <p className="text-2xl font-bold text-gray-800">
-            {
-              deposits.filter(
-                (d) => d.status === "SUCCESS" || d.status === "completed",
-              ).length
-            }
+            {deposits.filter(d => d.status === "SUCCESS" || d.status === "completed").length}
           </p>
         </div>
 
@@ -204,9 +186,7 @@ export function DepositsManagement() {
             <p className="text-gray-600">Thất bại</p>
             <XCircle className="w-5 h-5 text-red-500" />
           </div>
-          <p className="text-2xl font-bold text-gray-800">
-            {deposits.filter((d) => d.status === "FAILED").length}
-          </p>
+          <p className="text-2xl font-bold text-gray-800">{deposits.filter(d => d.status === "FAILED").length}</p>
         </div>
       </div>
 
@@ -218,7 +198,7 @@ export function DepositsManagement() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm giao dịch..."
                 className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
@@ -228,7 +208,7 @@ export function DepositsManagement() {
           <div>
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={e => setFilterStatus(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             >
               <option value="all">Tất cả trạng thái</option>
@@ -246,62 +226,34 @@ export function DepositsManagement() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">
-                  Mã GD
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">
-                  Số tiền
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">
-                  Loại
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">
-                  Mã tham chiếu
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">
-                  Trạng thái
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">
-                  Thời gian
-                </th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">
-                  Thao tác
-                </th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Mã GD</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Số tiền</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Loại</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Mã tham chiếu</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Trạng thái</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Thời gian</th>
               </tr>
             </thead>
 
             <tbody>
               {loading ? (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="py-10 px-6 text-center text-gray-500"
-                  >
+                  <td colSpan={6} className="py-10 px-6 text-center text-gray-500">
                     Đang tải lịch sử nạp tiền...
                   </td>
                 </tr>
               ) : filteredDeposits.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="py-10 px-6 text-center text-gray-500"
-                  >
+                  <td colSpan={6} className="py-10 px-6 text-center text-gray-500">
                     Không có giao dịch nạp tiền nào
                   </td>
                 </tr>
               ) : (
-                filteredDeposits.map((deposit) => (
-                  <tr
-                    key={deposit.id}
-                    className="border-t border-gray-100 hover:bg-gray-50"
-                  >
-                    <td className="py-4 px-6 font-medium text-[#FF2E63]">
-                      {deposit.id}
-                    </td>
+                filteredDeposits.map(deposit => (
+                  <tr key={deposit.id} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-6 font-medium text-[#FF2E63]">{deposit.id}</td>
 
-                    <td className="py-4 px-6 font-bold text-green-600 text-lg">
-                      {deposit.amount.toLocaleString("vi-VN")}đ
-                    </td>
+                    <td className="py-4 px-6 font-bold text-green-600 text-lg">{deposit.amount.toLocaleString("vi-VN")}đ</td>
 
                     <td className="py-4 px-6">
                       <span className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
@@ -309,39 +261,17 @@ export function DepositsManagement() {
                       </span>
                     </td>
 
-                    <td className="py-4 px-6 text-gray-600 font-mono text-sm">
-                      {deposit.transactionId}
-                    </td>
+                    <td className="py-4 px-6 text-gray-600 font-mono text-sm">{deposit.transactionId}</td>
 
                     <td className="py-4 px-6">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(deposit.status)}`}
-                      >
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(deposit.status)}`}>
                         {getStatusText(deposit.status)}
                       </span>
                     </td>
 
                     <td className="py-4 px-6 text-sm text-gray-600">
                       <p>{formatDateTime(deposit.requestDate)}</p>
-                      {deposit.completedDate && (
-                        <p className="text-xs text-green-600">
-                          {formatDateTime(deposit.completedDate)}
-                        </p>
-                      )}
-                    </td>
-
-                    <td className="py-4 px-6">
-                      <button
-                        className="p-2 hover:bg-gray-100 rounded-lg transition"
-                        title="Xem chi tiết"
-                        onClick={() => {
-                          alert(
-                            `Mã giao dịch: ${deposit.id}\nSố tiền: ${deposit.amount.toLocaleString("vi-VN")}đ\nTrạng thái: ${getStatusText(deposit.status)}\nThời gian: ${formatDateTime(deposit.requestDate)}`,
-                          );
-                        }}
-                      >
-                        <Eye className="w-5 h-5 text-gray-600" />
-                      </button>
+                      {deposit.completedDate && <p className="text-xs text-green-600">{formatDateTime(deposit.completedDate)}</p>}
                     </td>
                   </tr>
                 ))
@@ -359,9 +289,7 @@ export function DepositsManagement() {
             <button className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-400 cursor-not-allowed">
               Trước
             </button>
-            <button className="px-4 py-2 bg-[#FF2E63] text-white rounded-lg shadow-md shadow-pink-500/20">
-              1
-            </button>
+            <button className="px-4 py-2 bg-[#FF2E63] text-white rounded-lg shadow-md shadow-pink-500/20">1</button>
             <button className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-400 cursor-not-allowed">
               Sau
             </button>

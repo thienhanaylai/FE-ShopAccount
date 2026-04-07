@@ -36,6 +36,16 @@ function getTicketStatusColor(status: SupportTicketStatus): string {
   }
 }
 
+function getLatestAdminReply(ticket: SupportTicket) {
+  if (!ticket.replies || ticket.replies.length === 0) {
+    return null;
+  }
+
+  const sortedReplies = [...ticket.replies].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return sortedReplies[0] || null;
+}
+
 export function SupportPage() {
   const { isAuthenticated, user } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -79,8 +89,20 @@ export function SupportPage() {
 
       try {
         const response = await supportTicketService.getMyTickets({ page: 1, limit: 5 });
+        const basicTickets = response.data || [];
+
+        const detailedTickets = await Promise.all(
+          basicTickets.map(async ticket => {
+            try {
+              return await supportTicketService.getById(ticket.id);
+            } catch {
+              return ticket;
+            }
+          }),
+        );
+
         if (!cancelled) {
-          setMyTickets(response.data || []);
+          setMyTickets(detailedTickets);
         }
       } catch (error) {
         if (!cancelled) {
@@ -481,6 +503,18 @@ export function SupportPage() {
                       {myTickets.map(ticket => (
                         <div key={ticket.id} className="rounded-lg border border-gray-200 p-3">
                           <p className="line-clamp-1 text-sm font-medium text-gray-800">{ticket.title}</p>
+
+                          {getLatestAdminReply(ticket)?.message ? (
+                            <div className="mt-2 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-2">
+                              <p className="text-[11px] font-semibold text-blue-800">
+                                Admin {getLatestAdminReply(ticket)?.admin?.username || "hỗ trợ"}:
+                              </p>
+                              <p className="mt-1 line-clamp-2 text-xs text-blue-700">{getLatestAdminReply(ticket)?.message}</p>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-xs text-gray-500">Chưa có phản hồi từ admin.</p>
+                          )}
+
                           <div className="mt-2 flex items-center justify-between gap-2">
                             <span
                               className={`rounded-full px-2 py-1 text-xs font-semibold ${getTicketStatusColor(ticket.status)}`}
