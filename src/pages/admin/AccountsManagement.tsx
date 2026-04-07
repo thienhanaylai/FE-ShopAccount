@@ -275,6 +275,8 @@ export function AccountsManagement() {
   };
 
   const handleSaveAccount = async (payload: AccountFormValue) => {
+    if (isSavingAccount) return;
+
     const categoryId = payload.categoryId;
     const username = payload.username.trim();
     const email = payload.email.trim();
@@ -648,7 +650,10 @@ export function AccountsManagement() {
           categories={categories}
           account={showEditModal.mode === "edit" ? showEditModal.account : null}
           isSaving={isSavingAccount}
-          onClose={() => setShowEditModal(null)}
+          onClose={() => {
+            if (isSavingAccount) return;
+            setShowEditModal(null);
+          }}
           onSave={handleSaveAccount}
         />
       )}
@@ -709,7 +714,11 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
       <div className="scrollbar-hidden my-4 w-full max-w-3xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white">
         <div className="flex items-center justify-between rounded-t-2xl bg-gradient-to-r from-[#252A34] to-[#FF2E63] p-6 text-white shadow-lg">
           <h2 className="text-2xl font-bold">{isCreate ? "Thêm tài khoản game" : "Chỉnh sửa tài khoản game"}</h2>
-          <button onClick={onClose} className="rounded-lg p-2 transition hover:bg-white/20">
+          <button
+            onClick={onClose}
+            disabled={isSaving}
+            className="rounded-lg p-2 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+          >
             <Plus className="h-6 w-6 rotate-45" />
           </button>
         </div>
@@ -724,6 +733,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleChange}
+                disabled={isSaving}
                 required
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               >
@@ -744,6 +754,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
+                disabled={isSaving}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               >
                 <option value={GameAccountStatus.AVAILABLE}>Đang bán</option>
@@ -764,6 +775,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
+                disabled={isSaving}
                 required
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
@@ -778,6 +790,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={isSaving}
                 required
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
@@ -794,6 +807,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
                 name="price"
                 value={formData.price}
                 onChange={handleChange}
+                disabled={isSaving}
                 min="0"
                 required
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
@@ -807,6 +821,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
                 name="level"
                 value={formData.level}
                 onChange={handleChange}
+                disabled={isSaving}
                 min="0"
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
@@ -819,6 +834,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
                 name="rank"
                 value={formData.rank}
                 onChange={handleChange}
+                disabled={isSaving}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               />
             </div>
@@ -833,6 +849,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
               name="password"
               value={formData.password}
               onChange={handleChange}
+              disabled={isSaving}
               required={isCreate}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder={isCreate ? "Nhập mật khẩu tài khoản game" : "Để trống nếu không đổi"}
@@ -846,6 +863,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
               accept="image/*"
               multiple
               onChange={handleImageFilesChange}
+              disabled={isSaving}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 file:mr-3 file:rounded-md file:border-0 file:bg-[#FF2E63] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-[#d9254f]"
             />
             {imageError && <p className="mt-2 text-xs text-red-600">{imageError}</p>}
@@ -861,6 +879,7 @@ function EditAccountModal({ mode, categories, account, isSaving, onClose, onSave
               name="description"
               value={formData.description}
               onChange={handleChange}
+              disabled={isSaving}
               rows={4}
               className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
             />

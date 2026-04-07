@@ -62,6 +62,7 @@ export function CategoriesManagement() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [updatingCategoryId, setUpdatingCategoryId] = useState<string | null>(null);
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<GameCategory | null>(null);
   const [showEditModal, setShowEditModal] = useState<GameCategory | "create" | null>(null);
 
@@ -226,6 +227,10 @@ export function CategoriesManagement() {
   };
 
   const handleSaveCategory = async (payload: CategoryFormValue) => {
+    if (isSavingCategory) return;
+
+    setIsSavingCategory(true);
+
     try {
       const normalizedSlug = payload.slug.trim() || toSlug(payload.name);
       const editingCategory = showEditModal && showEditModal !== "create" ? showEditModal : null;
@@ -261,6 +266,8 @@ export function CategoriesManagement() {
     } catch (error) {
       setSuccessMessage(null);
       setErrorMessage(ErrorHandler.getErrorMessage(error));
+    } finally {
+      setIsSavingCategory(false);
     }
   };
 
@@ -459,8 +466,12 @@ export function CategoriesManagement() {
       {showEditModal && (
         <EditCategoryModal
           category={showEditModal === "create" ? null : showEditModal}
-          onClose={() => setShowEditModal(null)}
+          onClose={() => {
+            if (isSavingCategory) return;
+            setShowEditModal(null);
+          }}
           onSave={handleSaveCategory}
+          isSubmitting={isSavingCategory}
         />
       )}
     </div>
@@ -471,9 +482,10 @@ interface EditCategoryModalProps {
   category: GameCategory | null;
   onClose: () => void;
   onSave: (data: CategoryFormValue) => void;
+  isSubmitting: boolean;
 }
 
-function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps) {
+function EditCategoryModal({ category, onClose, onSave, isSubmitting }: EditCategoryModalProps) {
   const [formData, setFormData] = useState<CategoryFormValue>({
     name: category?.name || "",
     slug: category?.slug || "",
@@ -540,6 +552,7 @@ function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps
               name="name"
               value={formData.name}
               onChange={handleTextChange}
+              disabled={isSubmitting}
               required
               className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="VD: Liên Minh Huyền Thoại"
@@ -555,6 +568,7 @@ function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps
               name="slug"
               value={formData.slug}
               onChange={handleTextChange}
+              disabled={isSubmitting}
               required
               className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="VD: lien-minh-huyen-thoai"
@@ -569,6 +583,7 @@ function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps
               type="file"
               accept="image/*"
               onChange={handleIconFileChange}
+              disabled={isSubmitting}
               required={!isEdit}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 file:mr-3 file:rounded-md file:border-0 file:bg-[#FF2E63] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-[#d9254f]"
             />
@@ -587,6 +602,7 @@ function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps
               name="description"
               value={formData.description}
               onChange={handleTextChange}
+              disabled={isSubmitting}
               rows={3}
               className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FF2E63]"
               placeholder="Mô tả ngắn về danh mục"
@@ -598,6 +614,7 @@ function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps
               type="checkbox"
               name="isActive"
               checked={formData.isActive}
+              disabled={isSubmitting}
               onChange={e => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
               className="h-4 w-4 rounded text-[#FF2E63] focus:ring-[#FF2E63]"
             />
@@ -607,14 +624,17 @@ function EditCategoryModal({ category, onClose, onSave }: EditCategoryModalProps
           <div className="flex gap-3 border-t pt-4">
             <button
               type="submit"
-              className="flex-1 rounded-lg bg-gradient-to-r from-[#252A34] to-[#FF2E63] py-3 font-semibold text-white shadow-lg shadow-pink-500/20 transition hover:from-[#252A34] hover:to-[#d9254f]"
+              disabled={isSubmitting}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#252A34] to-[#FF2E63] py-3 font-semibold text-white shadow-lg shadow-pink-500/20 transition hover:from-[#252A34] hover:to-[#d9254f] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isEdit ? "Lưu thay đổi" : "Thêm danh mục"}
+              {isSubmitting && !isEdit && <RefreshCw className="h-4 w-4 animate-spin" />}
+              {isSubmitting ? (isEdit ? "Đang lưu..." : "Đang tạo...") : isEdit ? "Lưu thay đổi" : "Thêm danh mục"}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 transition hover:bg-gray-300"
+              disabled={isSubmitting}
+              className="flex-1 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-70"
             >
               Hủy
             </button>
