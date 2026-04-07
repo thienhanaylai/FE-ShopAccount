@@ -1,14 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import {
-  AlertCircle,
-  CheckCircle2,
-  ChevronLeft,
-  ImageOff,
-  Loader2,
-  Wallet,
-  XCircle,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronLeft, ImageOff, Loader2, Wallet, XCircle } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { accountTradeService } from "../services/accountTrade.service";
 import { gameAccountService } from "../services/gameAccount.service";
@@ -38,9 +30,7 @@ const resolveImageUrls = (images?: GameAccount["images"]): string[] => {
     return [FALLBACK_ACCOUNT_IMAGE];
   }
 
-  return images
-    .map(image => (typeof image === "string" ? image : image?.url))
-    .filter((value): value is string => Boolean(value));
+  return images.map(image => (typeof image === "string" ? image : image?.url)).filter((value): value is string => Boolean(value));
 };
 
 const formatPrice = (price: number): string => `${price.toLocaleString("vi-VN")}đ`;
@@ -218,10 +208,7 @@ export function ProductDetailPage() {
     return (
       <div className="min-h-screen bg-gray-100 py-10">
         <div className="container mx-auto px-4">
-          <Link
-            to="/shop"
-            className="inline-flex items-center gap-2 text-[#F5A65B] hover:text-[#1EA7FD] mb-5"
-          >
+          <Link to="/shop" className="inline-flex items-center gap-2 text-[#F5A65B] hover:text-[#1EA7FD] mb-5">
             <ChevronLeft className="w-5 h-5" />
             <span>Quay lại cửa hàng</span>
           </Link>
@@ -248,10 +235,7 @@ export function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="container mx-auto px-4">
-        <Link
-          to="/shop"
-          className="inline-flex items-center gap-2 text-[#F5A65B] hover:text-[#1EA7FD] mb-6"
-        >
+        <Link to="/shop" className="inline-flex items-center gap-2 text-[#F5A65B] hover:text-[#1EA7FD] mb-6">
           <ChevronLeft className="w-5 h-5" />
           <span>Quay lại cửa hàng</span>
         </Link>
@@ -260,11 +244,7 @@ export function ProductDetailPage() {
           <div>
             <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
               {mainImage ? (
-                <img
-                  src={mainImage}
-                  alt={account.username}
-                  className="w-full h-[340px] sm:h-[420px] object-cover"
-                />
+                <img src={mainImage} alt={account.username} className="w-full h-[340px] sm:h-[420px] object-cover" />
               ) : (
                 <div className="w-full h-[340px] sm:h-[420px] flex flex-col items-center justify-center text-gray-500 bg-gray-50">
                   <ImageOff className="w-8 h-8 mb-2" />
@@ -280,16 +260,10 @@ export function ProductDetailPage() {
                   type="button"
                   onClick={() => setSelectedImage(index)}
                   className={`rounded-xl overflow-hidden border-2 transition ${
-                    selectedImage === index
-                      ? "border-[#0D4D8B] shadow"
-                      : "border-transparent hover:border-gray-300"
+                    selectedImage === index ? "border-[#0D4D8B] shadow" : "border-transparent hover:border-gray-300"
                   }`}
                 >
-                  <img
-                    src={image}
-                    alt={`${account.username}-${index + 1}`}
-                    className="w-full h-24 object-cover"
-                  />
+                  <img src={image} alt={`${account.username}-${index + 1}`} className="w-full h-24 object-cover" />
                 </button>
               ))}
             </div>
@@ -307,9 +281,7 @@ export function ProductDetailPage() {
                 </span>
               </div>
 
-              <p className="mt-5 text-5xl font-extrabold text-red-600">
-                {formatPrice(account.price)}
-              </p>
+              <p className="mt-5 text-5xl font-extrabold text-red-600">{formatPrice(account.price)}</p>
 
               <button
                 type="button"

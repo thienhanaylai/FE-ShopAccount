@@ -3,6 +3,7 @@ import { useState } from "react";
 
 interface UserOrder {
   id: string;
+  gameAccountId: string;
   game: string;
   rank?: string;
   date: string;
@@ -10,31 +11,53 @@ interface UserOrder {
   status: string;
 }
 
+interface PurchaseGameAccount {
+  id: string;
+  category?: {
+    id: string;
+    name: string;
+  };
+  username?: string;
+  password?: string;
+  email?: string;
+  rank?: string;
+  level?: number;
+  description?: string;
+}
+
+interface PurchaseItem {
+  id: string;
+  gameAccountId: string;
+  price: number;
+  status: string;
+  createdAt: string;
+  gameAccount?: PurchaseGameAccount;
+}
+
 interface OrderDetailModalProps {
   order: UserOrder;
+  purchase: PurchaseItem | null;
   onClose: () => void;
 }
 
-export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
+export function OrderDetailModal({ order, purchase, onClose }: OrderDetailModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Mock account info - in real app, fetch from backend
   const accountInfo = {
-    username: "GameAccount_" + order.id.slice(-4),
-    password: "Abc123456@",
-    email: "account" + order.id.slice(-4) + "@gmail.com",
-    emailPassword: "EmailPass123@",
-    server: "Việt Nam",
-    rank: order.rank || "Kim Cương III",
-    level: "234",
-    additionalInfo: {
-      champions: "145/165 Tướng",
-      skins: "89 Trang phục",
-      rp: "2,450 RP",
-      be: "45,600 BE",
-    },
+    username: purchase?.gameAccount?.username || "Chưa có dữ liệu",
+    password: purchase?.gameAccount?.password || "Chưa có dữ liệu",
+    email: purchase?.gameAccount?.email || "Chưa có dữ liệu",
+    rank: purchase?.gameAccount?.rank || order.rank || "Chưa cập nhật",
+    level: purchase?.gameAccount?.level ? String(purchase.gameAccount.level) : "Chưa cập nhật",
+    description: purchase?.gameAccount?.description || "Không có mô tả",
+    gameName: purchase?.gameAccount?.category?.name || order.game,
+    accountId: purchase?.gameAccount?.id || order.gameAccountId,
   };
+
+  const hasRealCredentials = Boolean(
+    purchase?.gameAccount?.username || purchase?.gameAccount?.password || purchase?.gameAccount?.email,
+  );
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -50,19 +73,17 @@ Game: ${order.game}
 Rank: ${accountInfo.rank}
 
 --- ĐĂNG NHẬP GAME ---
+Account ID: ${accountInfo.accountId}
 Username: ${accountInfo.username}
 Password: ${accountInfo.password}
 
 --- EMAIL LIÊN KẾT ---
 Email: ${accountInfo.email}
-Email Password: ${accountInfo.emailPassword}
 
 --- CHI TIẾT ---
-Server: ${accountInfo.server}
+Rank: ${accountInfo.rank}
 Level: ${accountInfo.level}
-${Object.entries(accountInfo.additionalInfo)
-  .map(([key, value]) => `${key}: ${value}`)
-  .join("\n")}
+Mô tả: ${accountInfo.description}
 
 Ngày mua: ${order.date}
 Giá: ${order.amount.toLocaleString("vi-VN")}đ
@@ -95,7 +116,7 @@ Shopaccgiare.tech - Uy tín #1 Việt Nam
           <div>
             <h2 className="text-2xl font-bold mb-1">Thông tin tài khoản</h2>
             <p className="text-blue-100">
-              {order.id} - {order.game}
+              {order.id} - {accountInfo.gameName}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition">
@@ -104,6 +125,12 @@ Shopaccgiare.tech - Uy tín #1 Việt Nam
         </div>
 
         <div className="p-6 space-y-6">
+          {!hasRealCredentials && (
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+              Chưa tìm thấy đầy đủ thông tin tài khoản trong danh sách đã mua. Vui lòng tải lại trang để đồng bộ dữ liệu mới nhất.
+            </div>
+          )}
+
           {/* Success Notice */}
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
             <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
@@ -136,6 +163,7 @@ Shopaccgiare.tech - Uy tín #1 Việt Nam
                   </label>
                   <button
                     onClick={() => copyToClipboard(accountInfo.username, "username")}
+                    disabled={!hasRealCredentials}
                     className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-[#0B4275] rounded-lg hover:bg-blue-200 transition"
                   >
                     {copiedField === "username" ? (
@@ -181,6 +209,7 @@ Shopaccgiare.tech - Uy tín #1 Việt Nam
                     </button>
                     <button
                       onClick={() => copyToClipboard(accountInfo.password, "password")}
+                      disabled={!hasRealCredentials}
                       className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-[#0B4275] rounded-lg hover:bg-blue-200 transition"
                     >
                       {copiedField === "password" ? (
@@ -222,6 +251,7 @@ Shopaccgiare.tech - Uy tín #1 Việt Nam
                   <label className="text-sm font-medium text-gray-600">Email</label>
                   <button
                     onClick={() => copyToClipboard(accountInfo.email, "email")}
+                    disabled={!hasRealCredentials}
                     className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
                   >
                     {copiedField === "email" ? (
@@ -239,29 +269,6 @@ Shopaccgiare.tech - Uy tín #1 Việt Nam
                 </div>
                 <p className="font-mono font-semibold text-gray-800 bg-gray-50 px-4 py-2 rounded">{accountInfo.email}</p>
               </div>
-
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-600">Mật khẩu Email</label>
-                  <button
-                    onClick={() => copyToClipboard(accountInfo.emailPassword, "emailPassword")}
-                    className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
-                  >
-                    {copiedField === "emailPassword" ? (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Đã copy
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <p className="font-mono font-semibold text-gray-800 bg-gray-50 px-4 py-2 rounded">{accountInfo.emailPassword}</p>
-              </div>
             </div>
           </div>
 
@@ -270,19 +277,21 @@ Shopaccgiare.tech - Uy tín #1 Việt Nam
             <h3 className="font-bold text-gray-800 mb-4">Chi tiết tài khoản</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white p-3 rounded-lg">
-                <p className="text-sm text-gray-600">Server</p>
-                <p className="font-semibold text-gray-800">{accountInfo.server}</p>
+                <p className="text-sm text-gray-600">ID tài khoản</p>
+                <p className="font-semibold text-gray-800 break-all">{accountInfo.accountId}</p>
               </div>
               <div className="bg-white p-3 rounded-lg">
                 <p className="text-sm text-gray-600">Level</p>
                 <p className="font-semibold text-gray-800">{accountInfo.level}</p>
               </div>
-              {Object.entries(accountInfo.additionalInfo).map(([key, value]) => (
-                <div key={key} className="bg-white p-3 rounded-lg">
-                  <p className="text-sm text-gray-600 capitalize">{key}</p>
-                  <p className="font-semibold text-gray-800">{value}</p>
-                </div>
-              ))}
+              <div className="bg-white p-3 rounded-lg">
+                <p className="text-sm text-gray-600">Rank</p>
+                <p className="font-semibold text-gray-800">{accountInfo.rank}</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg col-span-2">
+                <p className="text-sm text-gray-600">Mô tả</p>
+                <p className="font-semibold text-gray-800">{accountInfo.description}</p>
+              </div>
             </div>
           </div>
 

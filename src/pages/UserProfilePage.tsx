@@ -1,17 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 import { axiosService } from "../services/axios";
 import { Link, useSearchParams } from "react-router";
-import { Mail, Wallet, ShoppingBag, Edit, Shield, LogOut, ArrowRight, Eye, ArrowLeftRight } from "lucide-react";
+import { Mail, Wallet, ShoppingBag, Edit, Shield, LogOut, ArrowRight, Eye } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { OrderDetailModal } from "../components/user/OrderDetailModal";
 
 interface OrderItem {
   id: string;
+  gameAccountId: string;
   game: string;
   rank: string;
   amount: number;
   date: string;
   status: string;
+}
+
+interface PurchaseGameAccount {
+  id: string;
+  categoryId?: string;
+  category?: {
+    id: string;
+    name: string;
+  };
+  username?: string;
+  email?: string;
+  password?: string;
+  rank?: string;
+  level?: number;
+  description?: string;
+}
+
+interface PurchaseItem {
+  id: string;
+  gameAccountId: string;
+  price: number;
+  status: string;
+  createdAt: string;
+  gameAccount?: PurchaseGameAccount;
 }
 
 interface TransactionItem {
@@ -21,16 +46,6 @@ interface TransactionItem {
   method: string;
   date: string;
   status: string;
-}
-
-interface TransferItem {
-  id: string;
-  recipient: string;
-  recipientName: string;
-  amount: number;
-  status: string;
-  date: string;
-  note: string;
 }
 
 const formatCurrency = (value?: number) => `${(value || 0).toLocaleString("vi-VN")}đ`;
@@ -90,6 +105,7 @@ const getTransactionStatusUi = (status?: string) => {
 export function UserProfilePage() {
   const { user, logout, isAdmin } = useAuth();
   const [searchParams] = useSearchParams();
+  const profileUser = user as (typeof user & { phone?: string }) | null;
 
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get("tab");
@@ -107,29 +123,22 @@ export function UserProfilePage() {
 
   const [balance, setBalance] = useState<number>(user?.balance || 0);
   const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>([]);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
-  const [phone, setPhone] = useState((user as any)?.phone || "");
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Vui lòng đăng nhập để xem trang này</p>
-          <Link to="/login" className="text-[#0D4D8B] hover:underline mt-2 inline-block">
-            Đăng nhập ngay
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const [phone, setPhone] = useState(profileUser?.phone || "");
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const loadProfileData = async () => {
       setLoading(true);
       setPageError("");
 
       try {
-        const [balanceRes, purchasesRes, historyRes, transferRes] = await Promise.all([
+        const [balanceRes, purchasesRes, historyRes] = await Promise.all([
           axiosService.get("/wallets/me/balance"),
           axiosService.get("/account-trades/me/purchases", {
             params: { page: 1, limit: 20 },
@@ -137,33 +146,54 @@ export function UserProfilePage() {
           axiosService.get("/wallets/me/history", {
             params: { page: 1, limit: 20 },
           }),
-          axiosService.get("/wallets/me/history", {
-            params: { page: 1, limit: 20, type: "TRANSFER" as const },
-          }),
         ]);
 
-        const balanceData = balanceRes.data as any;
+        const balanceData = balanceRes.data as { balance?: number };
         setBalance(Number(balanceData?.balance || 0));
 
-        const purchasesData = (purchasesRes.data as any)?.data || [];
-        const mappedOrders: OrderItem[] = purchasesData.map((item: any) => ({
+        const purchasesData = (purchasesRes.data as { data?: Record<string, unknown>[] })?.data || [];
+        const normalizedPurchases: PurchaseItem[] = purchasesData.map(item => ({
+          id: String(item.id || ""),
+          gameAccountId: String(item.gameAccountId || ((item.gameAccount as { id?: string } | undefined)?.id ?? "")),
+          price: Number(item.price || 0),
+          status: String(item.status || ""),
+          createdAt: String(item.createdAt || ""),
+          gameAccount: item.gameAccount
+            ? {
+                id: String((item.gameAccount as { id?: string }).id || ""),
+                categoryId: (item.gameAccount as { categoryId?: string }).categoryId,
+                category: (item.gameAccount as { category?: { id: string; name: string } }).category,
+                username: (item.gameAccount as { username?: string }).username,
+                email: (item.gameAccount as { email?: string }).email,
+                password: (item.gameAccount as { password?: string }).password,
+                rank: (item.gameAccount as { rank?: string }).rank,
+                level: (item.gameAccount as { level?: number }).level,
+                description: (item.gameAccount as { description?: string }).description,
+              }
+            : undefined,
+        }));
+
+        setPurchaseItems(normalizedPurchases);
+
+        const mappedOrders: OrderItem[] = normalizedPurchases.map(item => ({
           id: item.id,
+          gameAccountId: item.gameAccountId,
           game: item.gameAccount?.category?.name || "Tài khoản game",
           rank: item.gameAccount?.rank || (item.gameAccount?.level ? `Level ${item.gameAccount.level}` : "Chưa cập nhật"),
-          amount: Number(item.price || 0),
+          amount: item.price,
           date: item.createdAt,
           status: item.status,
         }));
         setOrders(mappedOrders);
 
-        const historyData = (historyRes.data as any)?.data || [];
-        const mappedTransactions: TransactionItem[] = historyData.map((item: any) => ({
-          id: item.id,
-          type: item.method,
+        const historyData = (historyRes.data as { data?: Record<string, unknown>[] })?.data || [];
+        const mappedTransactions: TransactionItem[] = historyData.map(item => ({
+          id: String(item.id || ""),
+          type: String(item.method || ""),
           amount: Number(item.price || 0),
-          method: item.method,
-          date: item.createdAt,
-          status: item.status,
+          method: String(item.method || ""),
+          date: String(item.createdAt || ""),
+          status: String(item.status || ""),
         }));
         setTransactions(mappedTransactions);
       } catch (error) {
@@ -175,11 +205,21 @@ export function UserProfilePage() {
     };
 
     loadProfileData();
-  }, []);
+  }, [user]);
 
   const totalSpent = useMemo(() => {
     return orders.filter(item => ["PAID", "COMPLETED"].includes(item.status)).reduce((sum, item) => sum + item.amount, 0);
   }, [orders]);
+
+  const selectedPurchaseDetail = useMemo(() => {
+    if (!showOrderDetail) return null;
+
+    return (
+      purchaseItems.find(item => item.gameAccountId && item.gameAccountId === showOrderDetail.gameAccountId) ||
+      purchaseItems.find(item => item.id === showOrderDetail.id) ||
+      null
+    );
+  }, [showOrderDetail, purchaseItems]);
 
   const stats = [
     {
@@ -203,6 +243,8 @@ export function UserProfilePage() {
   ];
 
   const handleUpdateProfile = async () => {
+    if (!user) return;
+
     try {
       setSavingProfile(true);
       await axiosService.patch(`/users/${user.id}`, { phone });
@@ -214,6 +256,19 @@ export function UserProfilePage() {
       setSavingProfile(false);
     }
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Vui lòng đăng nhập để xem trang này</p>
+          <Link to="/login" className="text-[#0D4D8B] hover:underline mt-2 inline-block">
+            Đăng nhập ngay
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -317,7 +372,7 @@ export function UserProfilePage() {
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600 mb-1">Ngày tham gia</p>
-                      <p className="font-semibold text-gray-800">{formatDate((user as any).createdAt)}</p>
+                      <p className="font-semibold text-gray-800">{formatDate(profileUser?.createdAt)}</p>
                     </div>
                   </div>
                 </div>
@@ -536,7 +591,9 @@ export function UserProfilePage() {
         </div>
       </div>
 
-      {showOrderDetail && <OrderDetailModal order={showOrderDetail} onClose={() => setShowOrderDetail(null)} />}
+      {showOrderDetail && (
+        <OrderDetailModal order={showOrderDetail} purchase={selectedPurchaseDetail} onClose={() => setShowOrderDetail(null)} />
+      )}
     </div>
   );
 }
