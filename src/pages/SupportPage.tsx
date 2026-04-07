@@ -6,6 +6,8 @@ import ErrorHandler from "../utils/errorHandler";
 import { useAuth } from "../hooks/useAuth";
 import { SupportTicket, SupportTicketStatus } from "../services/types";
 
+const MY_TICKETS_PAGE_SIZE = 5;
+
 function getTicketStatusText(status: SupportTicketStatus): string {
   switch (status) {
     case SupportTicketStatus.PENDING:
@@ -54,6 +56,9 @@ export function SupportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMyTickets, setIsLoadingMyTickets] = useState(false);
   const [ticketRefreshKey, setTicketRefreshKey] = useState(0);
+  const [myTicketsPage, setMyTicketsPage] = useState(1);
+  const [myTicketsTotalPages, setMyTicketsTotalPages] = useState(1);
+  const [myTicketsTotal, setMyTicketsTotal] = useState(0);
   const [myTickets, setMyTickets] = useState<SupportTicket[]>([]);
   const [ticketsError, setTicketsError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -77,6 +82,9 @@ export function SupportPage() {
   useEffect(() => {
     if (!isAuthenticated) {
       setMyTickets([]);
+      setMyTicketsPage(1);
+      setMyTicketsTotalPages(1);
+      setMyTicketsTotal(0);
       setTicketsError(null);
       return;
     }
@@ -88,7 +96,10 @@ export function SupportPage() {
       setTicketsError(null);
 
       try {
-        const response = await supportTicketService.getMyTickets({ page: 1, limit: 5 });
+        const response = await supportTicketService.getMyTickets({
+          page: myTicketsPage,
+          limit: MY_TICKETS_PAGE_SIZE,
+        });
         const basicTickets = response.data || [];
 
         const detailedTickets = await Promise.all(
@@ -103,10 +114,14 @@ export function SupportPage() {
 
         if (!cancelled) {
           setMyTickets(detailedTickets);
+          setMyTicketsTotalPages(Math.max(1, response.pagination?.totalPages || 1));
+          setMyTicketsTotal(Math.max(0, response.pagination?.total || detailedTickets.length));
         }
       } catch (error) {
         if (!cancelled) {
           setMyTickets([]);
+          setMyTicketsTotalPages(1);
+          setMyTicketsTotal(0);
           setTicketsError(ErrorHandler.getErrorMessage(error));
         }
       } finally {
@@ -121,7 +136,7 @@ export function SupportPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, ticketRefreshKey]);
+  }, [isAuthenticated, myTicketsPage, ticketRefreshKey]);
 
   const categories = useMemo(
     () => [
@@ -270,6 +285,7 @@ export function SupportPage() {
 
       setSuccessMessage("Đã gửi yêu cầu hỗ trợ thành công. Chúng tôi sẽ phản hồi trong thời gian sớm nhất.");
       setExpandedFaq(null);
+      setMyTicketsPage(1);
       setTicketRefreshKey(prev => prev + 1);
       setFormData({
         name: user?.username || "",
@@ -487,53 +503,77 @@ export function SupportPage() {
                   {isSubmitting ? "Đang gửi..." : !isAuthenticated ? "Đăng nhập để gửi" : "Gửi yêu cầu"}
                 </button>
               </form>
-
-              {isAuthenticated && (
-                <div className="mt-6 border-t border-gray-200 pt-4">
-                  <h3 className="mb-3 text-sm font-semibold text-gray-800">Yêu cầu gần đây của bạn</h3>
-
-                  {ticketsError && <p className="text-xs text-red-600">{ticketsError}</p>}
-
-                  {isLoadingMyTickets ? (
-                    <p className="text-sm text-gray-500">Đang tải yêu cầu...</p>
-                  ) : myTickets.length === 0 ? (
-                    <p className="text-sm text-gray-500">Bạn chưa có ticket nào.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {myTickets.map(ticket => (
-                        <div key={ticket.id} className="rounded-lg border border-gray-200 p-3">
-                          <p className="line-clamp-1 text-sm font-medium text-gray-800">{ticket.title}</p>
-
-                          {getLatestAdminReply(ticket)?.message ? (
-                            <div className="mt-2 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-2">
-                              <p className="text-[11px] font-semibold text-blue-800">
-                                Admin {getLatestAdminReply(ticket)?.admin?.username || "hỗ trợ"}:
-                              </p>
-                              <p className="mt-1 line-clamp-2 text-xs text-blue-700">{getLatestAdminReply(ticket)?.message}</p>
-                            </div>
-                          ) : (
-                            <p className="mt-2 text-xs text-gray-500">Chưa có phản hồi từ admin.</p>
-                          )}
-
-                          <div className="mt-2 flex items-center justify-between gap-2">
-                            <span
-                              className={`rounded-full px-2 py-1 text-xs font-semibold ${getTicketStatusColor(ticket.status)}`}
-                            >
-                              {getTicketStatusText(ticket.status)}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(ticket.createdAt).toLocaleDateString("vi-VN")}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
+
+        {isAuthenticated && (
+          <div className="mt-10 rounded-xl bg-white p-6 shadow-lg">
+            <h2 className="mb-4 text-xl font-bold text-gray-800">Ticket đã gửi</h2>
+
+            {ticketsError && <p className="text-sm text-red-600">{ticketsError}</p>}
+
+            {isLoadingMyTickets ? (
+              <p className="text-sm text-gray-500">Đang tải yêu cầu...</p>
+            ) : myTickets.length === 0 ? (
+              <p className="text-sm text-gray-500">Bạn chưa có ticket nào.</p>
+            ) : (
+              <div className="space-y-3">
+                {myTickets.map(ticket => {
+                  const latestReply = getLatestAdminReply(ticket);
+
+                  return (
+                    <div key={ticket.id} className="rounded-lg border border-gray-200 p-4">
+                      <p className="line-clamp-1 text-sm font-semibold text-gray-800">{ticket.title}</p>
+
+                      {latestReply?.message ? (
+                        <div className="mt-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
+                          <p className="text-xs font-semibold text-blue-800">Admin {latestReply.admin?.username || "hỗ trợ"}:</p>
+                          <p className="mt-1 text-sm text-blue-700">{latestReply.message}</p>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm text-gray-500">Chưa có phản hồi từ admin.</p>
+                      )}
+
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getTicketStatusColor(ticket.status)}`}>
+                          {getTicketStatusText(ticket.status)}
+                        </span>
+                        <span className="text-xs text-gray-500">{new Date(ticket.createdAt).toLocaleDateString("vi-VN")}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {myTicketsTotalPages > 1 && (
+                  <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2">
+                    <p className="text-xs text-gray-500">
+                      Trang {myTicketsPage}/{myTicketsTotalPages} • {myTicketsTotal} ticket
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setMyTicketsPage(prev => Math.max(1, prev - 1))}
+                        disabled={myTicketsPage <= 1 || isLoadingMyTickets}
+                        className="rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Trước
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMyTicketsPage(prev => Math.min(myTicketsTotalPages, prev + 1))}
+                        disabled={myTicketsPage >= myTicketsTotalPages || isLoadingMyTickets}
+                        className="rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Sau
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Additional Help */}
         <div className="bg-gradient-to-r from-[#0D4D8B] to-[#F5A65B] text-white rounded-2xl p-8 mt-12 text-center">
