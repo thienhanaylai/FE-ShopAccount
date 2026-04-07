@@ -89,6 +89,20 @@ function toNumber(value: string, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function getStatusPriority(status: TableStatus): number {
+  switch (status) {
+    case "active":
+      return 0;
+    case "pending":
+      return 1;
+    case "sold":
+      return 2;
+    case "rejected":
+    default:
+      return 3;
+  }
+}
+
 export function AccountsManagement() {
   const [accounts, setAccounts] = useState<GameAccount[]>([]);
   const [categories, setCategories] = useState<GameCategory[]>([]);
@@ -103,6 +117,8 @@ export function AccountsManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalAccounts, setTotalAccounts] = useState(0);
+  const [activeTotalCount, setActiveTotalCount] = useState(0);
+  const [soldTotalCount, setSoldTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -131,17 +147,43 @@ export function AccountsManagement() {
     setErrorMessage(null);
 
     try {
-      const response = await gameAccountService.getList({
-        page: currentPage,
-        limit: PAGE_SIZE,
-        search: searchQuery || undefined,
-        categoryId: filterGame !== "all" ? filterGame : undefined,
-        status: filterStatus !== "all" ? filterStatus : undefined,
-      });
+      const [listResult, activeTotalResult, soldTotalResult] = await Promise.allSettled([
+        gameAccountService.getList({
+          page: currentPage,
+          limit: PAGE_SIZE,
+          search: searchQuery || undefined,
+          categoryId: filterGame !== "all" ? filterGame : undefined,
+          status: filterStatus !== "all" ? filterStatus : undefined,
+        }),
+        gameAccountService.getList({
+          page: 1,
+          limit: 1,
+          status: GameAccountStatus.AVAILABLE,
+        }),
+        gameAccountService.getList({
+          page: 1,
+          limit: 1,
+          status: GameAccountStatus.SOLD,
+        }),
+      ]);
+
+      if (listResult.status !== "fulfilled") {
+        throw listResult.reason;
+      }
+
+      const response = listResult.value;
 
       setAccounts(response.data || []);
       setTotalPages(response.pagination.totalPages || 1);
       setTotalAccounts(response.pagination.total || 0);
+
+      if (activeTotalResult.status === "fulfilled") {
+        setActiveTotalCount(activeTotalResult.value.pagination.total || 0);
+      }
+
+      if (soldTotalResult.status === "fulfilled") {
+        setSoldTotalCount(soldTotalResult.value.pagination.total || 0);
+      }
     } catch (error) {
       setAccounts([]);
       setTotalPages(1);
@@ -160,28 +202,28 @@ export function AccountsManagement() {
     void fetchAccounts();
   }, [fetchAccounts]);
 
-  const tableAccounts: UiAccount[] = useMemo(
-    () =>
-      accounts.map(account => ({
-        id: account.id,
-        categoryId: account.categoryId,
-        email: account.email,
-        gameName: categoryMap[account.categoryId] || "Game chưa phân loại",
-        rank: account.rank || (account.level ? `Level ${account.level}` : "Chưa có rank"),
-        price: Number.isFinite(account.price) ? account.price : 0,
-        seller: account.username || account.email,
-        status: mapStatusToTable(account.status),
-        views: 0,
-        favorites: 0,
-        createdDate: formatDate(account.createdAt),
-        verified: account.status === GameAccountStatus.AVAILABLE,
-        description: account.description,
-        images: toImageList(account.images),
-        level: account.level,
-        apiStatus: account.status,
-      })),
-    [accounts, categoryMap],
-  );
+  const tableAccounts: UiAccount[] = useMemo(() => {
+    const mapped = accounts.map(account => ({
+      id: account.id,
+      categoryId: account.categoryId,
+      email: account.email,
+      gameName: categoryMap[account.categoryId] || "Game chưa phân loại",
+      rank: account.rank || (account.level ? `Level ${account.level}` : "Chưa có rank"),
+      price: Number.isFinite(account.price) ? account.price : 0,
+      seller: account.username || account.email,
+      status: mapStatusToTable(account.status),
+      views: 0,
+      favorites: 0,
+      createdDate: formatDate(account.createdAt),
+      verified: account.status === GameAccountStatus.AVAILABLE,
+      description: account.description,
+      images: toImageList(account.images),
+      level: account.level,
+      apiStatus: account.status,
+    }));
+
+    return mapped.sort((a, b) => getStatusPriority(a.status) - getStatusPriority(b.status));
+  }, [accounts, categoryMap]);
 
   const getStatusColor = (status: TableStatus) => {
     switch (status) {
@@ -356,8 +398,6 @@ export function AccountsManagement() {
     }
   };
 
-  const activeCount = tableAccounts.filter(account => account.status === "active").length;
-
   return (
     <div className="p-8">
       <div className="mb-8 flex items-center justify-between">
@@ -408,24 +448,18 @@ export function AccountsManagement() {
         </div>
       )}
 
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-xl bg-white p-4 shadow-lg">
-          <p className="text-sm text-gray-500">Tài khoản trên trang</p>
-          <p className="text-2xl font-bold text-[#252A34]">{tableAccounts.length}</p>
+          <p className="text-sm text-gray-500">Tổng tài khoản</p>
+          <p className="text-2xl font-bold text-[#252A34]">{totalAccounts}</p>
         </div>
         <div className="rounded-xl bg-white p-4 shadow-lg">
           <p className="text-sm text-gray-500">Đang bán</p>
-          <p className="text-2xl font-bold text-green-600">{activeCount}</p>
-        </div>
-        <div className="rounded-xl bg-white p-4 shadow-lg">
-          <p className="text-sm text-gray-500">Đã giữ chỗ</p>
-          <p className="text-2xl font-bold text-yellow-600">
-            {tableAccounts.filter(account => account.status === "pending").length}
-          </p>
+          <p className="text-2xl font-bold text-green-600">{activeTotalCount}</p>
         </div>
         <div className="rounded-xl bg-white p-4 shadow-lg">
           <p className="text-sm text-gray-500">Đã bán</p>
-          <p className="text-2xl font-bold text-blue-600">{tableAccounts.filter(account => account.status === "sold").length}</p>
+          <p className="text-2xl font-bold text-blue-600">{soldTotalCount}</p>
         </div>
       </div>
 
