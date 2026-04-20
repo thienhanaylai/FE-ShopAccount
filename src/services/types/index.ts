@@ -344,6 +344,33 @@ export interface WalletHistoryFilters {
   toDate?: string;
 }
 
+export interface WalletAdminTopUpHistoryUser {
+  id: string;
+  username?: string;
+  email?: string;
+}
+
+export interface WalletAdminTopUpHistoryItem {
+  id: string;
+  userId: string;
+  method: TransactionMethod;
+  price: number;
+  status: TransactionStatus;
+  referenceId?: string | null;
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: WalletAdminTopUpHistoryUser;
+}
+
+export interface WalletAdminTopUpHistoryFilters {
+  page?: number;
+  limit?: number;
+  status?: TransactionStatus;
+  fromDate?: string;
+  toDate?: string;
+}
+
 // ============ MEDIA ============
 export interface MediaUploadResponse {
   publicId: string;

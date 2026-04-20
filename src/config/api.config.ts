@@ -36,6 +36,7 @@ export const API_CONFIG = {
     WALLET_TRANSFER: "/wallets/transfer",
     WALLET_BALANCE: "/wallets/me/balance",
     WALLET_HISTORY: "/wallets/me/history",
+    WALLET_ADMIN_TOP_UP_HISTORY: "/wallets/admin/top-up-history",
     WALLET_ADMIN_ADJUST: "/wallets/admin/adjust",
 
     // Media

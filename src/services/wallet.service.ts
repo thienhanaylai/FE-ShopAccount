@@ -6,6 +6,8 @@ import {
   TransferRequest,
   BalanceAdjustRequest,
   WalletHistoryFilters,
+  WalletAdminTopUpHistoryFilters,
+  WalletAdminTopUpHistoryItem,
   PaginationResponse,
   Transaction,
   ApiResponse,
@@ -34,6 +36,13 @@ class WalletService {
 
   async getHistory(filters?: WalletHistoryFilters): Promise<PaginationResponse<Transaction>> {
     const response = await axiosService.get<PaginationResponse<Transaction>>("/wallets/me/history", {
+      params: filters,
+    });
+    return response.data;
+  }
+
+  async getAdminTopUpHistory(filters?: WalletAdminTopUpHistoryFilters): Promise<PaginationResponse<WalletAdminTopUpHistoryItem>> {
+    const response = await axiosService.get<PaginationResponse<WalletAdminTopUpHistoryItem>>("/wallets/admin/top-up-history", {
       params: filters,
     });
     return response.data;
