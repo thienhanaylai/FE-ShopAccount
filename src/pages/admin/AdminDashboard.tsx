@@ -141,8 +141,29 @@ function buildMonthRange(baseDate: Date): DateRange {
   return { start, end };
 }
 
+function buildWeekRange(baseDate: Date): DateRange {
+  const start = new Date(baseDate);
+  const day = start.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  start.setDate(start.getDate() + diffToMonday);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
 function addMonths(baseDate: Date, amount: number): Date {
   return new Date(baseDate.getFullYear(), baseDate.getMonth() + amount, 1, 0, 0, 0, 0);
+}
+
+function addDays(baseDate: Date, amount: number): Date {
+  const next = new Date(baseDate);
+  next.setDate(next.getDate() + amount);
+  return next;
 }
 
 function isWithinRange(dateValue: string | undefined, range: DateRange): boolean {
@@ -341,19 +362,22 @@ export function AdminDashboard() {
 
   const revenueData = useMemo(() => {
     const now = new Date();
-    const months = Array.from({ length: 6 }, (_, index) => addMonths(now, index - 5));
+    const weeks = Array.from({ length: 4 }, (_, index) => addDays(now, (index - 3) * 7));
 
-    return months.map(date => {
-      const range = buildMonthRange(date);
-      const monthOrders = orders.filter(order => isWithinRange(order.createdAt, range));
-      const revenue = monthOrders
+    return weeks.map(date => {
+      const range = buildWeekRange(date);
+      const weekOrders = orders.filter(order => isWithinRange(order.createdAt, range));
+      const revenue = weekOrders
         .filter(order => order.status === OrderStatus.PAID || order.status === OrderStatus.COMPLETED)
         .reduce((sum, order) => sum + toNumber(order.price), 0);
 
+      const startLabel = `${String(range.start.getDate()).padStart(2, "0")}/${String(range.start.getMonth() + 1).padStart(2, "0")}`;
+      const endLabel = `${String(range.end.getDate()).padStart(2, "0")}/${String(range.end.getMonth() + 1).padStart(2, "0")}`;
+
       return {
-        month: `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getFullYear()).slice(-2)}`,
+        period: `${startLabel} - ${endLabel}`,
         revenue: Number((revenue / 1_000_000).toFixed(2)),
-        orders: monthOrders.length,
+        orders: weekOrders.length,
       };
     });
   }, [orders]);
@@ -516,11 +540,11 @@ export function AdminDashboard() {
 
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-lg">
-          <h2 className="mb-6 text-xl font-bold text-gray-800">Doanh thu và đơn hàng 6 tháng gần nhất</h2>
+          <h2 className="mb-6 text-xl font-bold text-gray-800">Doanh thu và đơn hàng 4 tuần gần nhất</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+              <XAxis dataKey="period" />
               <YAxis yAxisId="left" />
               <YAxis yAxisId="right" orientation="right" />
               <Tooltip />
