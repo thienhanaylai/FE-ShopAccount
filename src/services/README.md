@@ -2,7 +2,7 @@
 
 Đây là tài liệu sử dụng API Services layer cho BE-ShopAccount.
 
-## 📋 Mục lục
+## Mục lục
 
 - [Cài đặt](#cài-đặt)
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
@@ -11,7 +11,7 @@
 - [Error Handling](#error-handling)
 - [Token Management](#token-management)
 
-## 🔧 Cài đặt
+## Cài đặt
 
 ### Environment Variables
 
@@ -21,7 +21,7 @@ Tạo file `.env.local` trong root project:
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
-## 📁 Cấu trúc thư mục
+## Cấu trúc thư mục
 
 ```
 src/
@@ -49,7 +49,7 @@ src/
     └── tokenUtils.ts          # Token & user management
 ```
 
-## 🚀 Cách sử dụng
+## Cách sử dụng
 
 ### 1. Authentication (Đăng nhập / Đăng ký)
 
@@ -578,7 +578,3 @@ Axios interceptor sẽ tự động lưu token mới vào localStorage.
      window.location.href = "/login";
    }
    ```
-
----
-
-Happy coding! 🚀

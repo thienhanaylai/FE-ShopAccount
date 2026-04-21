@@ -21,10 +21,12 @@ type LocalUser = {
 
 class SupportTicketService {
   private getErrorStatus(error: unknown): number | undefined {
+    // Tach ma trang thai HTTP tu loi request bi throw.
     return (error as { response?: { status?: number } })?.response?.status;
   }
 
   private shouldUseFallback(error: unknown): boolean {
+    // Xac dinh co nen dung local fallback storage khi goi API that bai hay khong.
     const status = this.getErrorStatus(error);
     if (status === 401 || status === 403 || status === 404) {
       return false;
@@ -33,6 +35,7 @@ class SupportTicketService {
   }
 
   private getCurrentUser(): LocalUser | null {
+    // Doc thong tin user hien tai tu local storage cua trinh duyet.
     if (typeof window === "undefined") return null;
 
     try {
@@ -47,6 +50,7 @@ class SupportTicketService {
   }
 
   private readFallbackTickets(): SupportTicket[] {
+    // Tai danh sach support ticket cache cuc bo dung cho luong offline/server-fallback.
     if (typeof window === "undefined") return [];
 
     try {
@@ -60,15 +64,18 @@ class SupportTicketService {
   }
 
   private writeFallbackTickets(tickets: SupportTicket[]): void {
+    // Luu support ticket fallback vao local storage.
     if (typeof window === "undefined") return;
     window.localStorage.setItem(SUPPORT_TICKETS_FALLBACK_KEY, JSON.stringify(tickets));
   }
 
   private generateId(prefix: string): string {
+    // Tao dinh danh duy nhat gon nhe cho du lieu tao cuc bo.
     return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
   private applyFilters(tickets: SupportTicket[], filters?: SupportTicketFilters): SupportTicket[] {
+    // Ap dung bo loc theo role va query cho tap support ticket.
     const currentUser = this.getCurrentUser();
     const isAdmin = currentUser?.role === "ADMIN";
 
@@ -119,6 +126,7 @@ class SupportTicketService {
   }
 
   private toPaginationResponse(data: SupportTicket[], page: number, limit: number): PaginationResponse<SupportTicket> {
+    // Chuyen danh sach ticket trong bo nho thanh response phan trang giong API.
     const safeLimit = Math.max(1, limit);
     const safePage = Math.max(1, page);
     const total = data.length;
@@ -138,6 +146,7 @@ class SupportTicketService {
   }
 
   async create(data: CreateSupportTicketRequest): Promise<SupportTicket> {
+    // Tao support ticket va fallback sang luu cuc bo khi can.
     try {
       const response = await axiosService.post<SupportTicket>("/support-tickets", data);
       return response.data;
@@ -177,6 +186,7 @@ class SupportTicketService {
   }
 
   async getList(filters?: SupportTicketFilters): Promise<PaginationResponse<SupportTicket>> {
+    // Lay support ticket tu API, hoac tu local fallback khi server loi.
     try {
       const response = await axiosService.get<PaginationResponse<SupportTicket>>("/support-tickets", {
         params: filters,
@@ -193,6 +203,7 @@ class SupportTicketService {
   }
 
   async getMyTickets(filters?: Omit<SupportTicketFilters, "userId">): Promise<PaginationResponse<SupportTicket>> {
+    // Lay ticket cua user hien tai voi fallback endpoint va loc cuc bo.
     try {
       const response = await axiosService.get<PaginationResponse<SupportTicket>>("/support-tickets/me", {
         params: filters,
@@ -223,6 +234,7 @@ class SupportTicketService {
   }
 
   async getById(id: string): Promise<SupportTicket> {
+    // Lay mot support ticket theo id voi tra cuu local fallback.
     try {
       const response = await axiosService.get<SupportTicket>(`/support-tickets/${id}`);
       return response.data;
@@ -238,6 +250,7 @@ class SupportTicketService {
   }
 
   async update(id: string, data: UpdateSupportTicketRequest): Promise<SupportTicket> {
+    // Cap nhat support ticket va dong bo thay doi sang fallback storage khi can.
     try {
       const response = await axiosService.patch<SupportTicket>(`/support-tickets/${id}`, data);
       return response.data;
@@ -269,6 +282,7 @@ class SupportTicketService {
   }
 
   async startProcessing(id: string): Promise<SupportTicket> {
+    // Danh dau support ticket dang xu ly va gan metadata nguoi xu ly.
     try {
       const response = await axiosService.post<SupportTicket>(`/support-tickets/${id}/start-processing`, {});
       return response.data;
@@ -296,6 +310,7 @@ class SupportTicketService {
   }
 
   async reply(id: string, data: ReplySupportTicketRequest): Promise<SupportTicket> {
+    // Them phan hoi admin va cap nhat trang thai ticket tren API hoac local fallback.
     try {
       const response = await axiosService.post<SupportTicket>(`/support-tickets/${id}/reply`, data);
       return response.data;
@@ -350,6 +365,7 @@ class SupportTicketService {
   }
 
   async delete(id: string): Promise<void> {
+    // Xoa support ticket tren API hoac fallback storage.
     try {
       await axiosService.delete(`/support-tickets/${id}`);
     } catch (error) {

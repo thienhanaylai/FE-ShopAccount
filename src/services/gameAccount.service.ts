@@ -10,6 +10,7 @@ import {
 
 class GameAccountService {
   async create(data: CreateGameAccountRequest): Promise<GameAccount> {
+    // Tao game account bang multipart payload cho metadata va hinh anh.
     const formData = new FormData();
     formData.append("categoryId", data.categoryId);
     formData.append("username", data.username);
@@ -34,6 +35,7 @@ class GameAccountService {
   }
 
   async getList(filters?: GameAccountListFilters): Promise<PaginationResponse<GameAccount>> {
+    // Lay danh sach game account co phan trang voi tham so tim loc tuy chon.
     const response = await axiosService.get<PaginationResponse<GameAccount>>("/game-accounts", {
       params: filters,
     });
@@ -41,11 +43,13 @@ class GameAccountService {
   }
 
   async getById(id: string): Promise<GameAccount> {
+    // Lay thong tin chi tiet cho mot game account.
     const response = await axiosService.get<GameAccount>(`/game-accounts/${id}`);
     return response.data;
   }
 
   async update(id: string, data: UpdateGameAccountRequest): Promise<GameAccount> {
+    // Cap nhat cac truong game account va upload hinh thay the neu duoc cung cap.
     const payload: UpdateGameAccountRequest = {};
 
     if (data.categoryId !== undefined) payload.categoryId = data.categoryId;
@@ -69,6 +73,7 @@ class GameAccountService {
   }
 
   async delete(id: string): Promise<void> {
+    // Xoa game account theo id.
     await axiosService.delete(`/game-accounts/${id}`);
   }
 }

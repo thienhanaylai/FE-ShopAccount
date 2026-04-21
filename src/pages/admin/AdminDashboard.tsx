@@ -28,6 +28,7 @@ import {
 } from "../../services";
 import ErrorHandler from "../../utils/errorHandler";
 
+//định nghĩa kiểu dữ liệu
 type TrendDirection = "up" | "down";
 
 type NormalizedList<T> = {
@@ -59,15 +60,20 @@ const CHART_COLORS = ["#FF2E63", "#08D9D6", "#10B981", "#F59E0B", "#6366F1"];
 const LIST_LIMIT = 100;
 const MAX_PAGES = 20;
 
+//các hàm tiện ích
+// Kiểm tra một giá trị có phải object hợp lệ (khác null) để truy cập key an toàn.
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+//hàm chueyern từ string thành số
+// Chuẩn hóa input về number, trả về fallback nếu giá trị không hợp lệ.
 function toNumber(value: unknown, fallback = 0): number {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+// Chuẩn hóa payload danh sách từ API về cấu trúc chung: items/total/totalPages.
 function normalizeListPayload<T>(payload: unknown): NormalizedList<T> {
   if (Array.isArray(payload)) {
     return {
@@ -99,6 +105,7 @@ function normalizeListPayload<T>(payload: unknown): NormalizedList<T> {
   };
 }
 
+// Tải toàn bộ dữ liệu theo phân trang và gộp thành một danh sách duy nhất.
 async function fetchAllPages<T>(
   loader: (page: number, limit: number) => Promise<unknown>,
   limit = LIST_LIMIT,
@@ -125,6 +132,7 @@ async function fetchAllPages<T>(
   };
 }
 
+// Tạo khoảng thời gian trọn vẹn của một ngày (00:00:00 -> 23:59:59).
 function buildDayRange(baseDate: Date): DateRange {
   const start = new Date(baseDate);
   start.setHours(0, 0, 0, 0);
@@ -135,12 +143,14 @@ function buildDayRange(baseDate: Date): DateRange {
   return { start, end };
 }
 
+// Tạo khoảng thời gian trọn vẹn của một tháng theo ngày truyền vào.
 function buildMonthRange(baseDate: Date): DateRange {
   const start = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1, 0, 0, 0, 0);
   const end = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0, 23, 59, 59, 999);
   return { start, end };
 }
 
+// Tạo khoảng thời gian của tuần hiện tại (từ Thứ 2 đến Chủ nhật).
 function buildWeekRange(baseDate: Date): DateRange {
   const start = new Date(baseDate);
   const day = start.getDay();
@@ -156,16 +166,19 @@ function buildWeekRange(baseDate: Date): DateRange {
   return { start, end };
 }
 
+// Cộng/trừ số tháng và trả về mốc đầu tháng tương ứng.
 function addMonths(baseDate: Date, amount: number): Date {
   return new Date(baseDate.getFullYear(), baseDate.getMonth() + amount, 1, 0, 0, 0, 0);
 }
 
+// Cộng/trừ số ngày từ một mốc thời gian.
 function addDays(baseDate: Date, amount: number): Date {
   const next = new Date(baseDate);
   next.setDate(next.getDate() + amount);
   return next;
 }
 
+// Kiểm tra một chuỗi ngày có nằm trong khoảng thời gian chỉ định hay không.
 function isWithinRange(dateValue: string | undefined, range: DateRange): boolean {
   if (!dateValue) return false;
   const time = new Date(dateValue).getTime();
@@ -174,6 +187,7 @@ function isWithinRange(dateValue: string | undefined, range: DateRange): boolean
   return time >= range.start.getTime() && time <= range.end.getTime();
 }
 
+// Tính phần trăm tăng/giảm giữa 2 mốc để hiển thị xu hướng.
 function calculateTrend(current: number, previous: number): TrendData {
   if (previous === 0 && current === 0) {
     return { change: "0.0%", trend: "up" };
@@ -193,10 +207,12 @@ function calculateTrend(current: number, previous: number): TrendData {
   };
 }
 
+// Định dạng số tiền theo tiền tệ VND để hiển thị chi tiết.
 function formatCurrency(value: number): string {
   return `${Math.round(value).toLocaleString("vi-VN")}đ`;
 }
 
+// Định dạng số tiền dạng rút gọn (compact) cho card thống kê.
 function formatCompactCurrency(value: number): string {
   return new Intl.NumberFormat("vi-VN", {
     notation: "compact",
@@ -204,6 +220,7 @@ function formatCompactCurrency(value: number): string {
   }).format(Math.round(value));
 }
 
+// Chuyển timestamp sang chuỗi thời gian tương đối (vừa xong, x phút trước, ...).
 function formatRelativeTime(value: string): string {
   const time = new Date(value).getTime();
   if (Number.isNaN(time)) return "--";
@@ -220,6 +237,7 @@ function formatRelativeTime(value: string): string {
   return `${Math.max(1, Math.floor(diff / day))} ngày trước`;
 }
 
+// Trả về màu badge tương ứng với trạng thái đơn hàng.
 function getStatusColor(status: OrderStatus): string {
   switch (status) {
     case OrderStatus.PAID:
@@ -234,6 +252,7 @@ function getStatusColor(status: OrderStatus): string {
   }
 }
 
+// Trả về nhãn trạng thái đơn hàng để hiển thị tiếng Việt.
 function getStatusText(status: OrderStatus): string {
   switch (status) {
     case OrderStatus.PAID:
@@ -249,6 +268,7 @@ function getStatusText(status: OrderStatus): string {
   }
 }
 
+// Component dashboard admin: tải dữ liệu, tính KPI và hiển thị biểu đồ/bảng tổng quan.
 export function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -263,6 +283,7 @@ export function AdminDashboard() {
   const [availableAccountsTotal, setAvailableAccountsTotal] = useState(0);
   const [todayOrdersTotal, setTodayOrdersTotal] = useState(0);
 
+  // Nạp toàn bộ dữ liệu dashboard từ API và đồng bộ state liên quan.
   const loadDashboard = useCallback(async () => {
     setErrorMessage(null);
 
@@ -333,6 +354,7 @@ export function AdminDashboard() {
     void run();
   }, [loadDashboard]);
 
+  // Làm mới dữ liệu dashboard theo thao tác người dùng.
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await loadDashboard();

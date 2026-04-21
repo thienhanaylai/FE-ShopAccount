@@ -3,6 +3,7 @@ import { MediaUploadResponse, MediaDetails } from "./types";
 
 class MediaService {
   async upload(file: File, folder?: string): Promise<MediaUploadResponse> {
+    // Tai len tep media va tuy chon dat vao thu muc dich.
     const formData = new FormData();
     formData.append("file", file);
     if (folder) formData.append("folder", folder);
@@ -14,6 +15,7 @@ class MediaService {
   }
 
   async getDetails(publicId: string): Promise<MediaDetails> {
+    // Lay metadata cua media asset theo public id.
     const response = await axiosService.get<MediaDetails>("/media/details", {
       params: { publicId },
     });
@@ -21,6 +23,7 @@ class MediaService {
   }
 
   async getUrl(publicId: string): Promise<{ url: string }> {
+    // Chuyen public id thanh URL media co the truy cap.
     const response = await axiosService.get<{ url: string }>("/media/url", {
       params: { publicId },
     });

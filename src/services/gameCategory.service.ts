@@ -11,6 +11,7 @@ import {
 
 class GameCategoryService {
   private unwrapCategoryResponse(payload: unknown): GameCategory {
+    // Chuan hoa response API co the boc du lieu category trong truong data long nhau.
     if (typeof payload === "object" && payload !== null && "data" in payload) {
       const nested = (payload as { data?: unknown }).data;
       if (nested && typeof nested === "object") {
@@ -22,6 +23,7 @@ class GameCategoryService {
   }
 
   async create(data: CreateGameCategoryRequest): Promise<GameCategory> {
+    // Tao game category bang multipart data de ho tro upload icon tuy chon.
     const formData = new FormData();
     formData.append("name", data.name);
     formData.append("slug", data.slug);
@@ -37,6 +39,7 @@ class GameCategoryService {
   }
 
   async getList(filters?: GameCategoryListFilters): Promise<PaginationResponse<GameCategory>> {
+    // Lay danh sach game category co phan trang voi bo loc tuy chon.
     const response = await axiosService.get<PaginationResponse<GameCategory>>("/game-categories", {
       params: filters,
     });
@@ -44,11 +47,13 @@ class GameCategoryService {
   }
 
   async getById(id: string): Promise<GameCategory> {
+    // Lay chi tiet cua game category cu the.
     const response = await axiosService.get<GameCategory>(`/game-categories/${id}`);
     return response.data;
   }
 
   async update(id: string, data: UpdateGameCategoryRequest): Promise<GameCategory> {
+    // Cap nhat cac truong category va fallback sang PUT neu PATCH khong duoc ho tro.
     const payload: Record<string, unknown> = {};
 
     if (data.name !== undefined) payload.name = data.name;
@@ -56,7 +61,7 @@ class GameCategoryService {
     if (data.description !== undefined) payload.description = data.description;
     if (data.isActive !== undefined) {
       payload.isActive = data.isActive;
-      // Compatibility alias for backends that use snake_case DTO mapping.
+      // Truong thay the de tuong thich backend su dung DTO mapping theo snake_case.
       payload.is_active = data.isActive;
     }
     if (data.icon !== undefined) payload.icon = data.icon;
@@ -80,6 +85,7 @@ class GameCategoryService {
   }
 
   async delete(id: string): Promise<void> {
+    // Xoa game category theo id.
     await axiosService.delete(`/game-categories/${id}`);
   }
 }
